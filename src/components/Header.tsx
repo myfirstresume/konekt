@@ -29,7 +29,7 @@ export default function Header() {
         <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
           Pricing
         </a>
-        <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+        <a href="/review" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
           Log in
         </a>
         <button className="bg-mfr-primary text-white px-4 sm:px-6 py-2 rounded-md hover:bg-mfr-primary/80 transition-colors text-sm lg:text-base">

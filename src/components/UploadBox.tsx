@@ -101,9 +101,9 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
   }, []);
 
   return (
-    <div className="w-full max-w-sm sm:max-w-md lg:max-w-2xl mx-auto">
+    <div className="w-full max-w-sm sm:max-w-md lg:max-w-2xl mx-auto text-center">
       <div 
-        className={`border-2 border-dashed rounded-lg p-8 sm:p-12 lg:p-16 text-center cursor-pointer transition-all duration-200 group min-h-[200px] sm:min-h-[250px] lg:min-h-[300px] ${
+        className={`border-2 border-dashed rounded-lg p-8 sm:p-12 lg:p-16 text-center cursor-pointer transition-all duration-200 group min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] flex flex-col items-center justify-center ${
           isDragOver 
             ? 'border-mfr-primary bg-mfr-primary/10' 
             : 'border-gray-300 hover:border-mfr-primary hover:bg-mfr-primary/10'
