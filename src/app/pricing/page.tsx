@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 const pricingTiers = [
   {
-    name: "First Timer",
+    name: "Freshman",
     price: "$15",
     period: "/mo",
     description: "Perfect for getting started with your career",
@@ -16,11 +16,12 @@ const pricingTiers = [
       "$10 per additional resume"
     ],
     popular: false,
-    buttonText: "Get Started",
-    buttonVariant: "outline"
+    buttonText: "Get Freshman",
+    buttonVariant: "outline",
+    stripeUrl: "https://buy.stripe.com/test_aFa28qeJe4eTdQl4iX4Vy01"
   },
   {
-    name: "Veteran",
+    name: "Sophomore",
     price: "$30",
     period: "/mo",
     description: "Most popular choice for serious job seekers",
@@ -32,11 +33,12 @@ const pricingTiers = [
       "1 live mock per month"
     ],
     popular: true,
-    buttonText: "Choose Veteran",
-    buttonVariant: "primary"
+    buttonText: "Choose Sophomore",
+    buttonVariant: "primary",
+    stripeUrl: "https://buy.stripe.com/test_9B6fZg1WsbHl6nT5n14Vy02"
   },
   {
-    name: "3 Musketeers",
+    name: "Senior",
     price: "$70",
     period: "/mo",
     description: "Share with friends and save together",
@@ -47,8 +49,9 @@ const pricingTiers = [
       "3 live mocks"
     ],
     popular: false,
-    buttonText: "Get 3 Musketeers",
-    buttonVariant: "outline"
+    buttonText: "Get Senior",
+    buttonVariant: "outline",
+    stripeUrl: "https://buy.stripe.com/test_8x24gy7gMfXB4fLbLp4Vy03"
   }
 ];
 
@@ -151,15 +154,18 @@ export default function PricingPage() {
                 </ul>
 
                 {/* CTA Button */}
-                <button
-                  className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
+                <a
+                  href={tier.stripeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors inline-block text-center ${
                     tier.popular
                       ? 'bg-mfr-primary text-white hover:bg-mfr-primary/80'
                       : 'bg-white text-mfr-primary border-2 border-mfr-primary hover:bg-mfr-primary hover:text-white'
                   }`}
                 >
                   {tier.buttonText}
-                </button>
+                </a>
               </div>
             ))}
           </div>
