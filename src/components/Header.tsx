@@ -3,9 +3,16 @@
 import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import { signOut } from "next-auth/react";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/' });
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-100">
@@ -29,12 +36,39 @@ export default function Header() {
         <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
           Pricing
         </a>
-        <a href="/review" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
-          Log in
-        </a>
-        <button className="bg-mfr-primary text-white px-4 sm:px-6 py-2 rounded-md hover:bg-mfr-primary/80 transition-colors text-sm lg:text-base">
-          Sign up
-        </button>
+        
+        {isLoading ? (
+          <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+        ) : isAuthenticated ? (
+          <>
+            <Link href="/dashboard" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+              Dashboard
+            </Link>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                {user?.name || user?.email}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base"
+              >
+                Sign out
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Link href="/login" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+              Log in
+            </Link>
+            <Link 
+              href="/pricing"
+              className="bg-mfr-primary text-white px-4 sm:px-6 py-2 rounded-md hover:bg-mfr-primary/80 transition-colors text-sm lg:text-base"
+            >
+              Sign up
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Mobile Menu Button */}
@@ -72,29 +106,64 @@ export default function Header() {
         <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 md:hidden z-50 shadow-lg">
           <nav className="flex flex-col px-4 py-4 space-y-4">
             <a 
-              href="#" 
+              href="/features" 
               className="text-gray-700 hover:text-gray-900 transition-colors py-2"
               onClick={() => setIsMenuOpen(false)}
             >
               Features
             </a>
             <a 
-              href="#" 
+              href="/pricing" 
               className="text-gray-700 hover:text-gray-900 transition-colors py-2"
               onClick={() => setIsMenuOpen(false)}
             >
               Pricing
             </a>
-            <a 
-              href="#" 
-              className="text-gray-700 hover:text-gray-900 transition-colors py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Log in
-            </a>
-            <button className="bg-mfr-primary text-white px-6 py-3 rounded-md hover:bg-mfr-primary/80 transition-colors text-left">
-              Sign up
-            </button>
+            
+            {isLoading ? (
+              <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+            ) : isAuthenticated ? (
+              <>
+                <Link 
+                  href="/dashboard" 
+                  className="text-gray-700 hover:text-gray-900 transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <div className="py-2">
+                  <span className="text-sm text-gray-600">
+                    {user?.name || user?.email}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-gray-700 hover:text-gray-900 transition-colors py-2 text-left"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/login" 
+                  className="text-gray-700 hover:text-gray-900 transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Log in
+                </Link>
+                <Link 
+                  href="/pricing"
+                  className="bg-mfr-primary text-white px-6 py-3 rounded-md hover:bg-mfr-primary/80 transition-colors text-left"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}
