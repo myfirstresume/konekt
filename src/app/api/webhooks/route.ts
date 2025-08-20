@@ -43,36 +43,28 @@ export async function POST(req: Request) {
       switch (event.type) {
         case "checkout.session.completed":
           data = event.data.object as Stripe.Checkout.Session;
-          console.log(`💰 CheckoutSession status: ${data.payment_status}`);
-          console.log(`💰 CheckoutSession mode: ${data.mode}`);
-          console.log(`💰 CheckoutSession subscription: ${data.subscription}`);
-          console.log(`💰 CheckoutSession metadata:`, data.metadata);
           
           // Handle subscription creation after successful checkout
           if (data.mode === 'subscription' && data.subscription) {
-            console.log(`🔄 Processing subscription creation for: ${data.subscription}`);
+            console.log(`Processing subscription creation for: ${data.subscription}`);
             await handleSubscriptionCreated(data.subscription as string);
           } else {
-            console.log(`❌ Not a subscription checkout or no subscription ID`);
+            console.log(`Not a subscription checkout or no subscription ID`);
           }
           break;
 
         case "customer.subscription.created":
           data = event.data.object as Stripe.Subscription;
-          console.log(`📅 Subscription created: ${data.id}`);
-          console.log(`📅 Subscription metadata:`, data.metadata);
           await handleSubscriptionCreated(data.id);
           break;
 
         case "customer.subscription.updated":
           data = event.data.object as Stripe.Subscription;
-          console.log(`📅 Subscription updated: ${data.id}`);
           await handleSubscriptionUpdated(data);
           break;
 
         case "customer.subscription.deleted":
           data = event.data.object as Stripe.Subscription;
-          console.log(`📅 Subscription deleted: ${data.id}`);
           await handleSubscriptionDeleted(data.id);
           break;
 
@@ -88,16 +80,9 @@ export async function POST(req: Request) {
 
         case "invoice.payment_succeeded":
           data = event.data.object as Stripe.Invoice;
-          console.log(`💰 Invoice payment succeeded: ${data.id}`);
-          console.log(`💰 Invoice subscription: ${data.subscription}`);
-          console.log(`💰 Invoice metadata:`, data.metadata);
           
-          // Handle subscription creation from invoice
-          if (data.subscription && data.subscription_details?.metadata) {
-            console.log(`🔄 Processing subscription from invoice: ${data.subscription}`);
-            await handleSubscriptionCreated(data.subscription as string);
-          } else {
-            console.log(`❌ No subscription or metadata found in invoice`);
+          if ((data as any).subscription && (data as any).subscription_details?.metadata) {
+            await handleSubscriptionCreated((data as any).subscription as string);
           }
           break;
 
@@ -123,6 +108,7 @@ async function handleSubscriptionCreated(subscriptionId: string) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     console.log(`📅 Retrieved subscription:`, subscription.id);
     console.log(`📅 Subscription metadata:`, subscription.metadata);
+    console.log(`📅 Subscription status:`, subscription.status);
     
     const userId = subscription.metadata.userId;
     const tierId = subscription.metadata.tierId;
@@ -160,31 +146,56 @@ async function handleSubscriptionCreated(subscriptionId: string) {
     console.log(`🔍 Converted currentPeriodStart:`, currentPeriodStart);
     console.log(`🔍 Converted currentPeriodEnd:`, currentPeriodEnd);
 
-    // Create or update subscription in database
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dbSubscription = await prisma.subscription.upsert({
-      where: { stripeSubscriptionId: subscriptionId },
-      update: {
-        status: subscription.status,
-        currentPeriodStart: currentPeriodStart,
-        currentPeriodEnd: currentPeriodEnd,
-      },
-      create: {
-        stripeSubscriptionId: subscriptionId,
-        stripePriceId: subscription.items.data[0].price.id,
-        stripeProductId: subscription.items.data[0].price.product as string,
-        userId: userId,
-        status: subscription.status,
-        currentPeriodStart: currentPeriodStart,
-        currentPeriodEnd: currentPeriodEnd,
-        planName: tier.name,
-        planFeatures: JSON.stringify(tier), // Convert to string for SQLite
-      },
+    // Check if user already has a subscription
+    console.log(`🔍 Checking for existing subscription for user: ${userId}`);
+    const existingSubscription = await prisma.subscription.findUnique({
+      where: { userId: userId },
     });
+
+    let dbSubscription;
+    if (existingSubscription) {
+      console.log(`🔄 User has existing subscription: ${existingSubscription.id}`);
+      console.log(`🔄 Updating existing subscription...`);
+      
+      // Update the existing subscription
+      dbSubscription = await prisma.subscription.update({
+        where: { userId: userId },
+        data: {
+          stripeSubscriptionId: subscriptionId,
+          stripePriceId: subscription.items.data[0].price.id,
+          stripeProductId: subscription.items.data[0].price.product as string,
+          status: subscription.status,
+          currentPeriodStart: currentPeriodStart,
+          currentPeriodEnd: currentPeriodEnd,
+          planName: tier.name,
+          planFeatures: JSON.stringify(tier), // Convert to string for SQLite
+        },
+      });
+      console.log(`✅ Updated existing subscription:`, dbSubscription.id);
+    } else {
+      console.log(`🆕 Creating new subscription for user...`);
+      
+      // Create new subscription
+      dbSubscription = await prisma.subscription.create({
+        data: {
+          stripeSubscriptionId: subscriptionId,
+          stripePriceId: subscription.items.data[0].price.id,
+          stripeProductId: subscription.items.data[0].price.product as string,
+          userId: userId,
+          status: subscription.status,
+          currentPeriodStart: currentPeriodStart,
+          currentPeriodEnd: currentPeriodEnd,
+          planName: tier.name,
+          planFeatures: JSON.stringify(tier), // Convert to string for SQLite
+        },
+      });
+      console.log(`✅ Created new subscription:`, dbSubscription.id);
+    }
 
     console.log(`✅ Created/updated subscription in database:`, dbSubscription.id);
 
     // Create or update usage tracking
+    console.log(`💾 Attempting to create/update usage tracking...`);
     const usage = await prisma.subscriptionUsage.upsert({
       where: { userId: userId },
       update: {
@@ -192,7 +203,7 @@ async function handleSubscriptionCreated(subscriptionId: string) {
         followUpQuestionsLimit: tier.limits.followUpQuestions,
         voiceNotesLimit: tier.limits.voiceNotes,
         liveMocksLimit: tier.limits.liveMocks,
-        usageResetDate: new Date((subscription as any).current_period_end * 1000),
+        usageResetDate: currentPeriodEnd,
       },
       create: {
         userId: userId,
@@ -200,7 +211,7 @@ async function handleSubscriptionCreated(subscriptionId: string) {
         followUpQuestionsLimit: tier.limits.followUpQuestions,
         voiceNotesLimit: tier.limits.voiceNotes,
         liveMocksLimit: tier.limits.liveMocks,
-        usageResetDate: new Date((subscription as any).current_period_end * 1000),
+        usageResetDate: currentPeriodEnd,
       },
     });
 
@@ -209,6 +220,7 @@ async function handleSubscriptionCreated(subscriptionId: string) {
     
   } catch (error) {
     console.error("❌ Error handling subscription creation:", error);
+    console.error("❌ Error details:", JSON.stringify(error, null, 2));
   }
 }
 

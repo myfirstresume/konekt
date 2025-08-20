@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import AuthGuard from '@/components/AuthGuard';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DocumentViewer from '@/components/DocumentViewer';
@@ -158,10 +159,11 @@ export default function ReviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <main className="flex h-[calc(100vh-80px)]">
+    <AuthGuard requireSubscription={true}>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <main className="flex h-[calc(100vh-80px)]">
         {/* Document Viewer - 2/3 width */}
         <div className="w-2/3 bg-white border-r border-gray-200 overflow-hidden">
           <div className="h-full flex flex-col">
@@ -354,6 +356,7 @@ export default function ReviewPage() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

@@ -64,10 +64,10 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome Back
+              Welcome!
             </h1>
             <p className="text-gray-600">
-              Sign in to access your resume reviews and subscription
+              Sign in or sign up to access your resume reviews and subscription
             </p>
           </div>
 
@@ -165,12 +165,12 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Not sure what to plan to choose ?{' '}
               <a
                 href="/pricing"
                 className="font-medium text-mfr-primary hover:text-mfr-primary/80 transition-colors"
               >
-                Get started with a free trial
+                Check out our subscription plans to find what&apos;s right for you!
               </a>
             </p>
           </div>
@@ -178,7 +178,7 @@ export default function LoginPage() {
           {/* Terms and Privacy */}
           <div className="text-center">
             <p className="text-xs text-gray-500">
-              By signing in, you agree to our{' '}
+              By signing in or signing up, you agree to our{' '}
               <a
                 href="/terms"
                 className="text-mfr-primary hover:text-mfr-primary/80 transition-colors"
