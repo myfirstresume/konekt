@@ -113,7 +113,7 @@ export default function ResumesPage() {
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">My Resumes</h1>
                   <p className="text-lg text-gray-600 mt-2">
-                    Select a resume to review and improve with AI
+                    Select a resume to review
                   </p>
                 </div>
                 <button

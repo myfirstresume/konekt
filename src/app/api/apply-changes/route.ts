@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../lib/auth';
 import OpenAI from 'openai';
+import { saveResumeVersion } from '@/utils/resume-cache';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +85,10 @@ UPDATED RESUME:
     if (cleanResume.endsWith('```')) {
       cleanResume = cleanResume.replace(/\s*```$/, '');
     }
+
+    // Save the updated resume to the database
+    const versionName = `resume_v${suggestions.length}`;
+    await saveResumeVersion(session.user.id, versionName, cleanResume, suggestions);
 
     return NextResponse.json({ 
       updatedResume: cleanResume,

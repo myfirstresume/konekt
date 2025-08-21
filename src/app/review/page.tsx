@@ -33,6 +33,18 @@ export default function ReviewPage() {
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
   const [hasAppliedChanges, setHasAppliedChanges] = useState(false);
   const [shouldGenerateReview, setShouldGenerateReview] = useState(true);
+  const [downloadFormat, setDownloadFormat] = useState<'docx' | 'pdf'>('docx');
+  const [currentResumeVersion, setCurrentResumeVersion] = useState<string>('original');
+  const [usage, setUsage] = useState<{
+    resumeReviewsUsed: number;
+    resumeReviewsLimit: number;
+    followUpQuestionsUsed: number;
+    followUpQuestionsLimit: number;
+    voiceNotesUsed: number;
+    voiceNotesLimit: number;
+    liveMocksUsed: number;
+    liveMocksLimit: number;
+  } | null>(null);
 
   // Configurable newline limit
   const MAX_CONSECUTIVE_NEWLINES = 3;
@@ -50,7 +62,7 @@ export default function ReviewPage() {
   useEffect(() => {
     const loadResumeText = async () => {
       try {
-        const response = await fetch('/api/get-sample-resume');
+        const response = await fetch('/api/get-latest-resume');
         if (response.ok) {
           const data = await response.json();
           const originalText = data.text;
@@ -58,23 +70,56 @@ export default function ReviewPage() {
           
           setResumeText(originalText);
           setCleanedResumeText(cleanedText);
+          setCurrentResumeVersion(data.version);
           
+          // Don't automatically trigger review on page load
+          // Only show cached feedback if it exists
+          setShouldGenerateReview(false);
 
         } else {
-          throw new Error('Failed to load sample resume');
+          throw new Error('Failed to load resume');
         }
       } catch (error) {
         console.error('Error loading resume text:', error);
-        throw new Error(`Failed to load sample resume: ${error}`);
+        throw new Error(`Failed to load resume: ${error}`);
       }
     };
 
     loadResumeText();
+    loadUsage();
   }, []);
+
+  const loadUsage = async () => {
+    try {
+      const response = await fetch('/api/usage');
+      if (response.ok) {
+        const data = await response.json();
+        setUsage(data);
+      }
+    } catch (error) {
+      console.error('Error loading usage:', error);
+    }
+  };
+
+  const handleUpgrade = () => {
+    // Navigate to pricing page
+    window.location.href = '/pricing';
+  };
 
   useEffect(() => {
     const generateComments = async () => {
-      if (!cleanedResumeText || !shouldGenerateReview) return;
+      if (!cleanedResumeText) return;
+      
+      // If shouldGenerateReview is false, just show no changes
+      if (!shouldGenerateReview) {
+        setComments([]);
+        setIsCached(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Original logic for generating new comments
+      if (!shouldGenerateReview) return;
       
       try {
         setIsLoading(true);
@@ -117,6 +162,11 @@ export default function ReviewPage() {
           });
           
           setComments(processedComments);
+          
+          // Refresh usage data after generating new review
+          if (!data.cached) {
+            loadUsage();
+          }
         } else {
           setError('No comments were generated. Please try again.');
         }
@@ -133,6 +183,12 @@ export default function ReviewPage() {
 
   const handleReReview = async () => {
     if (!cleanedResumeText) return;
+    
+    // Check if user has reached their limit
+    if (usage && usage.resumeReviewsUsed >= usage.resumeReviewsLimit) {
+      setError('You have reached your monthly review limit. Please upgrade your plan to continue.');
+      return;
+    }
     
     try {
       setIsReReviewing(true);
@@ -225,13 +281,14 @@ export default function ReviewPage() {
     try {
       setIsDownloading(true);
       
-      const response = await fetch('/api/download-resume');
+      const response = await fetch(`/api/download-resume?format=${downloadFormat}`);
       
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to download resume');
       }
       
+      // Get the blob from the response
       const blob = await response.blob();
       
       const today = new Date();
@@ -240,16 +297,19 @@ export default function ReviewPage() {
       const userName = session?.user?.name || 'user';
       const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
       
-      const filename = `${cleanUserName}_resume_${dateString}.txt`;
+      const filename = `${cleanUserName}_resume_${dateString}.${downloadFormat}`;
       
+      // Create a download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
       
+      // Trigger the download
       document.body.appendChild(link);
       link.click();
       
+      // Clean up
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
@@ -275,7 +335,8 @@ export default function ReviewPage() {
       const acceptedSuggestions = comments.filter(comment => comment.status === 'accepted');
       
       if (acceptedSuggestions.length === 0) {
-        setError('Please accept at least one suggestion before applying changes.');
+        setError('Please accept at least one suggestion before applying changes. Click the green checkmark next to suggestions you want to apply.');
+        setIsApplyingChanges(false);
         return;
       }
       
@@ -582,7 +643,7 @@ export default function ReviewPage() {
         <div className="w-2/3 bg-white border-r border-gray-200 overflow-hidden">
           <div className="h-full flex flex-col">
             {/* Document Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center justify-between px-6 py-4.5 border-b border-gray-200 bg-white">
               <div className="flex items-center space-x-3">
                 <h1 className="text-xl font-semibold text-gray-900">Resume Review</h1>
                 {hasAppliedChanges && (
@@ -595,32 +656,44 @@ export default function ReviewPage() {
                 )}
               </div>
               <div className="flex items-center space-x-2">
-                <button 
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                  className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
-                  title="Download current resume"
-                >
-                  {isDownloading ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Downloading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>Download</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={downloadFormat}
+                    onChange={(e) => setDownloadFormat(e.target.value as 'docx' | 'pdf')}
+                    className="px-2 py-1.5 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mfr-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 text-gray-900 font-medium"
+                    disabled={isDownloading}
+                    style={{ color: isDownloading ? '#9CA3AF' : '#111827' }}
+                  >
+                    <option value="docx">DOCX</option>
+                    <option value="pdf">PDF</option>
+                  </select>
+                  <button 
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                    className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                    title={`Download current resume as ${downloadFormat.toUpperCase()}`}
+                  >
+                    {isDownloading ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Downloading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Download</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <button 
                   onClick={handleApplyChanges}
-                  disabled={isApplyingChanges || comments.filter(c => c.status === 'accepted').length === 0}
+                  disabled={isApplyingChanges || comments.length === 0}
                   className="px-3 py-1.5 text-sm bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
                   title="Apply accepted suggestions to resume"
                 >
@@ -677,15 +750,25 @@ export default function ReviewPage() {
                     <p className="text-sm text-gray-500">
                       {getSortedComments().filter(c => c.status === 'pending').length} pending suggestions
                     </p>
+                    {currentResumeVersion !== 'original' && (
+                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                        {currentResumeVersion}
+                      </span>
+                    )}
+                    {usage && (
+                      <span className="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-full">
+                        Reviews: {usage.resumeReviewsUsed}/{usage.resumeReviewsLimit}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
               {!isLoading && !error && cleanedResumeText && (
                   <button
                     onClick={handleReReview}
-                    disabled={isReReviewing}
+                    disabled={isReReviewing || (usage ? usage.resumeReviewsUsed >= usage.resumeReviewsLimit : false)}
                     className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title="Get fresh AI review (will use OpenAI tokens)"
+                    title={usage && usage.resumeReviewsUsed >= usage.resumeReviewsLimit ? "Monthly review limit reached. Please upgrade your plan." : "Get fresh AI review (will use OpenAI tokens)"}
                   >
                     {isReReviewing ? (
                       <>
@@ -719,12 +802,51 @@ export default function ReviewPage() {
               <div className="flex items-center justify-center h-32">
                 <div className="text-center">
                   <p className="text-red-500 mb-2">{error}</p>
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="px-4 py-2 bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 transition-colors"
-                  >
-                    Try Again
-                  </button>
+                  {error.includes('monthly review limit') ? (
+                    <button 
+                      onClick={handleUpgrade}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      Upgrade Plan
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => window.location.reload()}
+                      className="px-4 py-2 bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : getSortedComments().length === 0 ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  {/*                   <p className="text-gray-500 mb-2">
+                    {currentResumeVersion !== 'original' 
+                      ? `No cached suggestions available for ${currentResumeVersion}. Click "Re-review" to get fresh feedback.`
+                      : 'No cached suggestions available. Click "Re-review" to get fresh feedback.'
+                    }
+                  </p>
+                  {usage && usage.resumeReviewsUsed >= usage.resumeReviewsLimit ? (
+                    <div className="space-y-2">
+                      <p className="text-orange-600 text-sm">You've reached your monthly review limit.</p>
+                      <button 
+                        onClick={handleUpgrade}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                      >
+                        Upgrade Plan
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={handleReReview}
+                      disabled={isReReviewing}
+                      className="px-4 py-2 bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isReReviewing ? 'Re-reviewing...' : 'Re-review'}
+                    </button>
+                  )} */}
                 </div>
               </div>
             ) : (

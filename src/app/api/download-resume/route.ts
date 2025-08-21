@@ -4,6 +4,7 @@ import { authOptions } from '../../../lib/auth';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { getLatestResumeVersion } from '@/utils/resume-cache';
+import { generateDocx, generatePdf, DOCUMENT_FORMATS } from '@/utils/document-generator';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,17 +14,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get format from query parameters (default to docx)
+    const { searchParams } = new URL(request.url);
+    const format = searchParams.get('format') || 'docx';
+    
+    if (!DOCUMENT_FORMATS[format]) {
+      return NextResponse.json({ error: 'Invalid format. Use "docx" or "pdf"' }, { status: 400 });
+    }
+
+    const documentFormat = DOCUMENT_FORMATS[format];
+
     // Try to get the latest resume version from database
     const latestVersion = await getLatestResumeVersion(session.user.id);
     
     if (latestVersion) {
-      // Return the latest version as plain text
-      const response = new NextResponse(latestVersion.resumeContent);
-      response.headers.set('Content-Type', 'text/plain');
-      response.headers.set('Content-Disposition', 'attachment; filename="resume.txt"');
-      response.headers.set('Content-Length', latestVersion.resumeContent.length.toString());
+      // Generate document in the requested format
+      let documentBuffer: Buffer;
       
-      return response;
+      if (format === 'docx') {
+        documentBuffer = await generateDocx(latestVersion.resumeContent);
+      } else if (format === 'pdf') {
+        documentBuffer = await generatePdf(latestVersion.resumeContent);
+      } else {
+        throw new Error('Unsupported format');
+      }
+      
+      // Return the generated document
+      return new NextResponse(documentBuffer, {
+        headers: {
+          'Content-Type': documentFormat.mimeType,
+          'Content-Disposition': `attachment; filename="resume.${documentFormat.extension}"`,
+          'Content-Length': documentBuffer.length.toString(),
+        },
+      });
     }
 
     // Fallback to original DOCX file if no version exists

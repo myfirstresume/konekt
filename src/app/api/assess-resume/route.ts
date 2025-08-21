@@ -9,6 +9,7 @@ import {
   saveResumeReviewToCache,
   CachedComment 
 } from '@/utils/resume-cache';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,45 @@ export async function POST(request: NextRequest) {
         comments: cachedComments,
         cached: true 
       });
+    }
+
+    // Check usage limits before generating new review
+    const currentUsage = await prisma.subscriptionUsage.findUnique({
+      where: { userId: session.user.id }
+    });
+
+    if (currentUsage && currentUsage.resumeReviewsUsed >= currentUsage.resumeReviewsLimit) {
+      return NextResponse.json({ 
+        error: 'Monthly review limit reached. Please upgrade your plan to continue.',
+        limitReached: true
+      }, { status: 429 });
+    }
+
+    // Increment review count when generating new review
+    try {
+      await prisma.subscriptionUsage.upsert({
+        where: { userId: session.user.id },
+        update: {
+          resumeReviewsUsed: {
+            increment: 1
+          }
+        },
+        create: {
+          userId: session.user.id,
+          resumeReviewsUsed: 1,
+          resumeReviewsLimit: 5, // Default limit
+          followUpQuestionsUsed: 0,
+          followUpQuestionsLimit: 200,
+          voiceNotesUsed: 0,
+          voiceNotesLimit: 15,
+          liveMocksUsed: 0,
+          liveMocksLimit: 1,
+          usageResetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1) // First day of next month
+        }
+      });
+    } catch (error) {
+      console.error('Error updating review count:', error);
+      // Continue with review generation even if tracking fails
     }
 
     console.log(`No cache found, calling OpenAI...`);
