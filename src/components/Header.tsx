@@ -71,7 +71,7 @@ export default function Header() {
                 Resumes
               </Link>
               <Link href="/mock" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
-                Mock
+                Mock Interview
               </Link>
               <Link href="/dashboard" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Dashboard

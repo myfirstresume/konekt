@@ -31,6 +31,36 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Check if billing cycle has reset
+    const now = new Date();
+    const resetDate = new Date(usage.usageResetDate);
+    
+    if (now >= resetDate) {
+      // Reset usage counters
+      const updatedUsage = await prisma.subscriptionUsage.update({
+        where: { userId: session.user.id },
+        data: {
+          resumeReviewsUsed: 0,
+          followUpQuestionsUsed: 0,
+          voiceNotesUsed: 0,
+          liveMocksUsed: 0,
+          // Keep the same reset date until webhook updates it
+        }
+      });
+      
+      return NextResponse.json({
+        resumeReviewsUsed: updatedUsage.resumeReviewsUsed,
+        resumeReviewsLimit: updatedUsage.resumeReviewsLimit,
+        followUpQuestionsUsed: updatedUsage.followUpQuestionsUsed,
+        followUpQuestionsLimit: updatedUsage.followUpQuestionsLimit,
+        voiceNotesUsed: updatedUsage.voiceNotesUsed,
+        voiceNotesLimit: updatedUsage.voiceNotesLimit,
+        liveMocksUsed: updatedUsage.liveMocksUsed,
+        liveMocksLimit: updatedUsage.liveMocksLimit,
+        usageResetDate: updatedUsage.usageResetDate
+      });
+    }
+
     return NextResponse.json({
       resumeReviewsUsed: usage.resumeReviewsUsed,
       resumeReviewsLimit: usage.resumeReviewsLimit,

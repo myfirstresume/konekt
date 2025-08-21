@@ -22,10 +22,6 @@ export async function POST(req: Request) {
     );
   }
 
-  console.log("Success:", event.id);
-  console.log("Event type:", event.type);
-  console.log("Event data:", JSON.stringify(event.data.object, null, 2));
-
   const permittedEvents: string[] = [
     "checkout.session.completed",
     "customer.subscription.created",
@@ -34,6 +30,8 @@ export async function POST(req: Request) {
     "payment_intent.succeeded",
     "payment_intent.payment_failed",
     "invoice.payment_succeeded",
+    "invoice.payment_failed",
+    "customer.subscription.trial_will_end",
   ];
 
   if (permittedEvents.includes(event.type)) {
@@ -81,16 +79,27 @@ export async function POST(req: Request) {
         case "invoice.payment_succeeded":
           data = event.data.object as Stripe.Invoice;
           
-          if ((data as any).subscription && (data as any).subscription_details?.metadata) {
-            await handleSubscriptionCreated((data as any).subscription as string);
+          // Handle new billing period - reset usage counters
+          if ((data as any).subscription) {
+            await handleNewBillingPeriod((data as any).subscription as string);
           }
+          break;
+
+        case "invoice.payment_failed":
+          data = event.data.object as Stripe.Invoice;
+          console.log(`Invoice payment failed for subscription: ${(data as any).subscription}`);
+          break;
+
+        case "customer.subscription.trial_will_end":
+          data = event.data.object as Stripe.Subscription;
+          console.log(`Trial ending for subscription: ${data.id}`);
           break;
 
         default:
           throw new Error(`Unhandled event: ${event.type}`);
       }
     } catch (error) {
-      console.log("❌ Webhook handler error:", error);
+      console.log("Webhook handler error:", error);
       return NextResponse.json(
         { message: "Webhook handler failed" },
         { status: 500 },
@@ -233,23 +242,26 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       return;
     }
 
+    const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
+
     await prisma.subscription.updateMany({
       where: { stripeSubscriptionId: subscription.id },
       data: {
         status: subscription.status,
         currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+        currentPeriodEnd: currentPeriodEnd,
       },
     });
 
-    // Reset usage if subscription is active and period has changed
+    // Update usage reset date if subscription is active
     if (subscription.status === 'active') {
       await prisma.subscriptionUsage.updateMany({
         where: { userId: userId },
         data: {
-          usageResetDate: new Date((subscription as any).current_period_end * 1000),
+          usageResetDate: currentPeriodEnd,
         },
       });
+      console.log(`✅ Updated usage reset date for user: ${userId} to ${currentPeriodEnd}`);
     }
   } catch (error) {
     console.error("❌ Error handling subscription update:", error);
@@ -264,5 +276,40 @@ async function handleSubscriptionDeleted(subscriptionId: string) {
     });
   } catch (error) {
     console.error("❌ Error handling subscription deletion:", error);
+  }
+}
+
+async function handleNewBillingPeriod(subscriptionId: string) {
+  try {
+    console.log(`🔄 Handling new billing period for subscription: ${subscriptionId}`);
+    
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const userId = subscription.metadata.userId;
+    
+    if (!userId) {
+      console.error("❌ Missing userId in subscription metadata");
+      return;
+    }
+
+    // Calculate new billing period end date
+    const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
+    
+    // Reset usage counters and update reset date
+    await prisma.subscriptionUsage.updateMany({
+      where: { userId: userId },
+      data: {
+        resumeReviewsUsed: 0,
+        followUpQuestionsUsed: 0,
+        voiceNotesUsed: 0,
+        liveMocksUsed: 0,
+        usageResetDate: currentPeriodEnd,
+      },
+    });
+
+    console.log(`✅ Reset usage counters for user: ${userId}`);
+    console.log(`✅ New billing period end: ${currentPeriodEnd}`);
+    
+  } catch (error) {
+    console.error("❌ Error handling new billing period:", error);
   }
 }
