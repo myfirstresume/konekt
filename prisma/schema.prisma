@@ -68,6 +68,9 @@ model User {
   // Resume versions
   resumeVersions ResumeVersion[]
 
+  // Chat messages
+  chatMessages ChatMessage[]
+
   @@map("users")
 }
 
@@ -165,4 +168,25 @@ model ResumeVersion {
   updatedAt   DateTime @updatedAt
 
   @@map("resume_versions")
+}
+
+model ChatMessage {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Message details
+  role              String   // 'user' or 'assistant'
+  content           String   // Encrypted message content
+  timestamp         DateTime @default(now())
+  
+  // Context information
+  relatedCommentId  String?  // Optional link to a specific comment
+  resumeVersionId   String?  // Optional link to a specific resume version
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("chat_messages")
 }

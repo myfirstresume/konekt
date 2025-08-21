@@ -25,20 +25,33 @@ export default function AuthGuard({ children, requireSubscription = true }: Auth
         const response = await fetch(`/api/subscription?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          setHasActiveSubscription(data.subscription && data.subscription.status === 'active');
+          // If no subscription exists, user needs to subscribe
+          const hasSubscription = data.subscription && data.subscription.status === 'active';
+          setHasActiveSubscription(hasSubscription);
+          
+          // If no subscription and we're requiring one, redirect immediately
+          if (!hasSubscription && requireSubscription) {
+            router.push('/pricing');
+          }
         } else {
           setHasActiveSubscription(false);
+          if (requireSubscription) {
+            router.push('/pricing');
+          }
         }
       } catch (error) {
         console.error('Error checking subscription:', error);
         setHasActiveSubscription(false);
+        if (requireSubscription) {
+          router.push('/pricing');
+        }
       } finally {
         setIsCheckingSubscription(false);
       }
     };
 
     checkSubscription();
-  }, [userId, isLoading]);
+  }, [userId, isLoading, requireSubscription, router]);
 
   // Show loading state
   if (isLoading || isCheckingSubscription) {

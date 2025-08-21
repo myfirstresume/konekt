@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import AuthGuard from '@/components/AuthGuard';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DocumentViewer from '@/components/DocumentViewer';
+import ChatMessage from '@/components/ChatMessage';
+import { ChatMessage as ChatMessageType } from '@/types/chat';
 
 interface Comment {
   id: string;
@@ -22,15 +24,19 @@ export default function ReviewPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessageType[]>([]);
   const [userQuestion, setUserQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const [resumeText, setResumeText] = useState<string>('');
   const [cleanedResumeText, setCleanedResumeText] = useState<string>('');
   const [isCached, setIsCached] = useState(false);
   const [isReReviewing, setIsReReviewing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
+  const [isApplyingChatChanges, setIsApplyingChatChanges] = useState(false);
   const [hasAppliedChanges, setHasAppliedChanges] = useState(false);
   const [shouldGenerateReview, setShouldGenerateReview] = useState(true);
   const [downloadFormat, setDownloadFormat] = useState<'docx' | 'pdf'>('docx');
@@ -86,8 +92,21 @@ export default function ReviewPage() {
       }
     };
 
+    const loadChatMessages = async () => {
+      try {
+        const response = await fetch('/api/chat-messages');
+        if (response.ok) {
+          const data = await response.json();
+          setChatMessages(data.messages || []);
+        }
+      } catch (error) {
+        console.error('Error loading chat messages:', error);
+      }
+    };
+
     loadResumeText();
     loadUsage();
+    loadChatMessages();
   }, []);
 
   const loadUsage = async () => {
@@ -392,6 +411,67 @@ export default function ReviewPage() {
     }
   };
 
+  const handleApplyChatChanges = async () => {
+    if (!cleanedResumeText || chatMessages.length === 0) return;
+    
+    try {
+      setIsApplyingChatChanges(true);
+      setError(null);
+      
+      // Call API to apply chat-based changes
+      const response = await fetch('/api/apply-chat-changes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          resume: cleanedResumeText,
+          chatMessages: chatMessages,
+          comments: comments,
+          selectedCommentId: selectedCommentId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to apply chat changes');
+      }
+
+      const data = await response.json();
+      
+      // Update the resume text with the modified version
+      const updatedResumeText = data.updatedResume;
+      const cleanedUpdatedText = cleanExcessiveNewlines(updatedResumeText, MAX_CONSECUTIVE_NEWLINES);
+      
+      setResumeText(updatedResumeText);
+      setCleanedResumeText(cleanedUpdatedText);
+      setHasAppliedChanges(true);
+      
+      // Clear chat messages from database since they've been applied
+      try {
+        await fetch('/api/chat-messages', {
+          method: 'DELETE',
+        });
+      } catch (error) {
+        console.error('Error clearing chat messages:', error);
+      }
+      
+      setChatMessages([]);
+      setSelectedCommentId(null);
+      
+      // Prevent automatic re-reviewing after applying changes
+      setShouldGenerateReview(false);
+      
+      console.log(`Successfully applied chat-based improvements to resume`);
+      
+    } catch (error) {
+      console.error('Error applying chat changes:', error);
+      setError('Failed to apply chat changes. Please try again.');
+    } finally {
+      setIsApplyingChatChanges(false);
+    }
+  };
+
   /**
    * Finds the exact position of reference text in the resume
    * Returns the start and end positions, or null if not found
@@ -589,15 +669,116 @@ export default function ReviewPage() {
     }
   };
 
+  const handleCommentSelect = (commentId: string) => {
+    setSelectedCommentId(commentId === selectedCommentId ? null : commentId);
+  };
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
+
   const handleAskQuestion = async () => {
     if (!userQuestion.trim()) return;
     
+    // Check if user has reached their limit
+    if (usage && usage.followUpQuestionsUsed >= usage.followUpQuestionsLimit) {
+      setError('You have reached your monthly follow-up question limit. Please upgrade your plan to continue.');
+      return;
+    }
+    
+    const userMessage: ChatMessageType = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: userQuestion,
+      timestamp: new Date(),
+      relatedCommentId: selectedCommentId || undefined
+    };
+    
+    // Save user message to database
+    try {
+      const saveResponse = await fetch('/api/chat-messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'user',
+          content: userQuestion,
+          relatedCommentId: selectedCommentId || null
+        }),
+      });
+
+      if (saveResponse.ok) {
+        const savedMessage = await saveResponse.json();
+        userMessage.id = savedMessage.id;
+      }
+    } catch (error) {
+      console.error('Error saving user message:', error);
+    }
+    
+    setChatMessages(prev => [...prev, userMessage]);
+    setUserQuestion('');
     setIsAsking(true);
-    setTimeout(() => {
-      console.log('Asking question:', userQuestion);
-      setUserQuestion('');
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userQuestion,
+          resumeText: cleanedResumeText,
+          comments: comments,
+          relatedCommentId: selectedCommentId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.limitReached) {
+          setError(errorData.error);
+          // Remove the user message since it wasn't processed
+          setChatMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+        } else {
+          throw new Error(errorData.error || 'Failed to send message');
+        }
+        return;
+      }
+
+      const data = await response.json();
+      
+      const assistantMessage: ChatMessageType = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date()
+      };
+      
+      setChatMessages(prev => [...prev, assistantMessage]);
+      
+      // Update usage
+      if (data.usage) {
+        setUsage(prev => prev ? {
+          ...prev,
+          followUpQuestionsUsed: data.usage.followUpQuestionsUsed,
+          followUpQuestionsLimit: data.usage.followUpQuestionsLimit
+        } : null);
+      }
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setError('Failed to send message. Please try again.');
+      // Remove the user message since it failed
+      setChatMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+    } finally {
       setIsAsking(false);
-    }, 1000);
+    }
   };
 
   const getCategoryColor = (category: Comment['category']) => {
@@ -722,6 +903,31 @@ export default function ReviewPage() {
                     </>
                   )}
                 </button>
+                {chatMessages.length > 0 && (
+                  <button 
+                    onClick={handleApplyChatChanges}
+                    disabled={isApplyingChatChanges}
+                    className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                    title="Apply improvements from chat conversation"
+                  >
+                    {isApplyingChatChanges ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="hidden sm:inline">Applying Chat Changes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span className="hidden sm:inline">Apply Chat Changes</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -957,6 +1163,19 @@ export default function ReviewPage() {
                           </button>
                           <div className="flex items-center space-x-2">
                             <button
+                              onClick={() => handleCommentSelect(comment.id)}
+                              className={`p-1 rounded transition-colors ${
+                                selectedCommentId === comment.id
+                                  ? 'text-mfr-primary bg-mfr-primary/10'
+                                  : 'text-gray-400 hover:bg-gray-200'
+                              }`}
+                              title={selectedCommentId === comment.id ? 'Deselect for chat' : 'Select for chat context'}
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                            <button
                               onClick={() => handleCommentAction(comment.id, 'accept')}
                               className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
                               title="Accept suggestion"
@@ -974,11 +1193,6 @@ export default function ReviewPage() {
                                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                               </svg>
                             </button>
-                            <button className="p-1 text-gray-400 hover:bg-gray-200 rounded transition-colors">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                              </svg>
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -989,29 +1203,91 @@ export default function ReviewPage() {
             )}
           </div>
 
-          {/* Question Input */}
-          <div className="border-t border-gray-200 p-4">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-                <span className="text-sm font-medium text-gray-700">Ask a follow-up question</span>
+          {/* Chat Interface */}
+          <div className="border-t border-gray-200 flex flex-col h-80">
+            {/* Chat Header */}
+            <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium text-gray-700">Chat with AI</span>
+                  {selectedCommentId && (
+                    <span className="text-xs text-mfr-primary bg-mfr-primary px-2 py-1 rounded-full">
+                      Context selected
+                    </span>
+                  )}
+                </div>
+                {usage && (
+                  <span className="text-xs text-gray-500">
+                    {usage.followUpQuestionsUsed}/{usage.followUpQuestionsLimit} questions
+                  </span>
+                )}
+                {chatMessages.length > 0 && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/chat-messages', { method: 'DELETE' });
+                        setChatMessages([]);
+                        setSelectedCommentId(null);
+                      } catch (error) {
+                        console.error('Error clearing chat:', error);
+                      }
+                    }}
+                    className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                    title="Clear all chat messages"
+                  >
+                    Clear Chat
+                  </button>
+                )}
               </div>
-              
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-auto p-4 space-y-2">
+              {chatMessages.length === 0 ? (
+                <div className="text-center text-gray-900 text-sm py-8">
+                  <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-gray-900">Ask questions about your resume suggestions</p>
+                  <p className="text-xs mt-1 text-gray-600">Select a comment above for specific context</p>
+                </div>
+              ) : (
+                chatMessages.map((message) => (
+                  <ChatMessage key={message.id} message={message} />
+                ))
+              )}
+                             {isAsking && (
+                 <div className="flex justify-start mb-4">
+                   <div className="bg-gray-100 text-gray-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
+                     <div className="flex items-center space-x-2">
+                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                       <span className="text-sm text-gray-900">AI is thinking...</span>
+                     </div>
+                   </div>
+                 </div>
+               )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <div className="border-t border-gray-200 p-4">
               <div className="flex space-x-2">
                 <input
                   type="text"
                   value={userQuestion}
                   onChange={(e) => setUserQuestion(e.target.value)}
-                  placeholder="Type your question or provide context..."
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mfr-primary focus:border-transparent"
+                  placeholder={selectedCommentId ? "Ask about the selected suggestion..." : "Ask a question about your resume..."}
+                  className="flex-1 px-3 py-2 text-sm border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mfr-primary focus:border-transparent"
                   onKeyPress={(e) => e.key === 'Enter' && handleAskQuestion()}
+                  disabled={isAsking || (usage ? usage.followUpQuestionsUsed >= usage.followUpQuestionsLimit : false)}
                 />
                 <button
                   onClick={handleAskQuestion}
-                  disabled={!userQuestion.trim() || isAsking}
-                  className="px-3 sm:px-4 py-2 bg-mfr-primary text-white text-sm rounded-md hover:bg-mfr-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={!userQuestion.trim() || isAsking || (usage ? usage.followUpQuestionsUsed >= usage.followUpQuestionsLimit : false)}
+                  className="px-3 py-2 bg-mfr-primary text-white text-sm rounded-md hover:bg-mfr-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isAsking ? (
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -1025,14 +1301,11 @@ export default function ReviewPage() {
                   )}
                 </button>
               </div>
-              
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-                </svg>
-                <span className="hidden sm:inline">Press Enter to send or click the microphone to speak</span>
-                <span className="sm:hidden">Press Enter to send</span>
-              </div>
+                             {usage && usage.followUpQuestionsUsed >= usage.followUpQuestionsLimit && (
+                 <p className="text-xs text-red-500 mt-2">
+                   You&apos;ve reached your monthly question limit. <button onClick={handleUpgrade} className="text-blue-600 hover:underline">Upgrade your plan</button> to continue.
+                 </p>
+               )}
             </div>
           </div>
         </div>

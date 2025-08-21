@@ -56,15 +56,8 @@ export const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       // Check if this is a new user by looking for the callback URL
       if (url.startsWith(baseUrl + "/api/auth/callback")) {
-        try {
-          // Try to get the current session to check if user exists
-          // For now, we'll redirect all users to pricing page
-          // In production, you'd check if they have a subscription
-          return `${baseUrl}/pricing?newUser=true`;
-        } catch (error) {
-          console.error("Error checking user status:", error);
-          return `${baseUrl}/pricing?newUser=true`;
-        }
+        // Direct new users to pricing page
+        return `${baseUrl}/pricing?newUser=true`;
       }
       // Allows relative callback URLs
       else if (url.startsWith("/")) return `${baseUrl}${url}`
@@ -81,17 +74,17 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile, isNewUser }) {
       try {
         if (isNewUser && user.email) {
-          // Create usage tracking for new users
+          // Create usage tracking for new users with zero limits (they need to subscribe)
           await prisma.subscriptionUsage.upsert({
             where: { userId: user.id },
             update: {},
             create: {
               userId: user.id,
-              resumeReviewsLimit: 0,
-              followUpQuestionsLimit: 0,
-              voiceNotesLimit: 0,
-              liveMocksLimit: 0,
-              usageResetDate: new Date(),
+              resumeReviewsLimit: 0, // No access until subscribed
+              followUpQuestionsLimit: 0, // No access until subscribed
+              voiceNotesLimit: 0, // No access until subscribed
+              liveMocksLimit: 0, // No access until subscribed
+              usageResetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), // First day of next month
             },
           });
         }
