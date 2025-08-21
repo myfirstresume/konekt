@@ -179,13 +179,14 @@ export default function LoginPage() {
           <div className="text-center">
             <p className="text-xs text-gray-500">
               By signing in or signing up, you agree to our{' '}
-              <a
+              {/* TODO: Add terms of service */}
+              {/* <a
                 href="/terms"
                 className="text-mfr-primary hover:text-mfr-primary/80 transition-colors"
               >
                 Terms of Service
               </a>{' '}
-              and{' '}
+              and{' '} */}
               <a
                 href="/privacy"
                 className="text-mfr-primary hover:text-mfr-primary/80 transition-colors"

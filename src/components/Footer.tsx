@@ -59,8 +59,7 @@ export default function Footer() {
                 <h3 className="text-lg font-bold text-gray-900">MyFirstResume</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4 max-w-md">
-                Professional AI-powered resume review service built by experts from top companies. 
-                Get personalized feedback to make your resume stand out.
+                Combining years of experience from top companies from top companies with AI to help you get your first job.
               </p>
               <div className="flex space-x-4">
               {/* TODO: Add social media linkss */}

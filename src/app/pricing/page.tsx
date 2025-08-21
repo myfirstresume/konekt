@@ -18,11 +18,11 @@ const faqs = [
     },
     {
       question: "Are live mocks recorded?",
-      answer: "Yes, all live mock interviews are recorded so you can review them later and track your progress."
+      answer: "Live mocks can be recored at the discretion of the professional."
     },
     {
-      question: "Can I cancel anytime?",
-      answer: "Absolutely. You can cancel your subscription at any time with no cancellation fees or penalties."
+      question: "How do I know the person I'm talking to is a professional if its anonymous?",
+      answer: "We have a strict vetting process for all our interviewers. They are all professionals at top companies and have a minimum of 1 year of experience."
     }
 ];
 

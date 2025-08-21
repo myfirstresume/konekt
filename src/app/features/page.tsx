@@ -14,58 +14,46 @@ const features = [
       </svg>
     ),
     benefits: [
-      "Specific feedback on every section",
-      "Actionable improvement suggestions",
-      "Industry-specific recommendations",
-      "Track changes and improvements"
+
     ]
   },
   {
     title: "AI-Powered Resume Rewrite",
     subtitle: "Transform your resume with AI",
-    description: "Let our advanced AI completely rewrite your resume using industry best practices and powerful action verbs that hiring managers love to see.",
+    description: "Let our advanced AI rewrite your resume using industry best practices.",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
       </svg>
     ),
     benefits: [
-      "Industry-optimized language",
-      "Powerful action verbs",
-      "ATS-friendly formatting",
-      "Multiple versions for different roles"
+
     ]
   },
   {
     title: "Speech-to-Text Experience",
     subtitle: "Explain your experience naturally",
-    description: "Simply talk about your experiences and let our AI convert your natural speech into compelling resume content. No more struggling to write about yourself.",
+    description: "Simply talk about your experiences and let our AI convert your natural speech into compelling resume content.",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
       </svg>
     ),
     benefits: [
-      "Natural speech recognition",
-      "AI-powered content generation",
-      "Capture authentic experiences",
-      "Save hours of writing time"
+      
     ]
   },
   {
-    title: "Live Anonymous Webinars",
-    subtitle: "Learn from MBB & BB consultants",
-    description: "Join live, anonymous webinars with current and former McKinsey, BCG, Bain consultants and Bulge Bracket bankers. Get insider insights and career advice.",
+    title: "Live Mock Interviews and Feedback",
+    subtitle: "Learn from professionals at top companies live",
+    description: "Join live, anonymous mock interviews with professionals at top companies. Get feedback on your resume and interview skills.",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
       </svg>
     ),
     benefits: [
-      "Anonymous participation",
-      "Real-time Q&A sessions",
-      "Industry insider insights",
-      "Networking opportunities"
+
     ]
   }
 ];
@@ -103,7 +91,7 @@ export default function FeaturesPage() {
                 Everything You Need to Succeed
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                From detailed feedback to AI-powered rewrites, we&apos;ve got you covered at every step of your career journey.
+                From detailed feedback to AI-powered rewrites, we&apos;ve got you covered at every step of your resume journey.
               </p>
             </div>
 
@@ -143,7 +131,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* Testimonials Section */}
-        <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20 bg-gray-50">
+        {/* <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
@@ -170,7 +158,7 @@ export default function FeaturesPage() {
               ))}
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* CTA Section */}
         <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20">

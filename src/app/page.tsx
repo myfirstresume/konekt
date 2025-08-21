@@ -29,11 +29,8 @@ export default function Home() {
             {!userId && !isLoading && (
               <div className="text-center mb-8">
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                  Upload your resume to begin your career
+                  Upload your resume to get started!
                 </h1>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                  Get AI-powered feedback from experts at top companies to make your resume stand out
-                </p>
               </div>
             )}
             <UploadBox 
