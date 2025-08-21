@@ -35,6 +35,7 @@ export default function ReviewPage() {
   const [shouldGenerateReview, setShouldGenerateReview] = useState(true);
   const [downloadFormat, setDownloadFormat] = useState<'docx' | 'pdf'>('docx');
   const [currentResumeVersion, setCurrentResumeVersion] = useState<string>('original');
+  const [showPdfPopup, setShowPdfPopup] = useState(false);
   const [usage, setUsage] = useState<{
     resumeReviewsUsed: number;
     resumeReviewsLimit: number;
@@ -278,8 +279,15 @@ export default function ReviewPage() {
    * Downloads the current resume
    */
   const handleDownload = async () => {
+    // Show popup for PDF downloads
+    if (downloadFormat === 'pdf') {
+      setShowPdfPopup(true);
+      return;
+    }
+    
     try {
       setIsDownloading(true);
+      setError(null); // Clear any previous errors
       
       const response = await fetch(`/api/download-resume?format=${downloadFormat}`);
       
@@ -638,14 +646,14 @@ export default function ReviewPage() {
       <div className="min-h-screen bg-gray-50">
         <Header />
         
-        <main className="flex h-[calc(100vh-80px)]">
-        {/* Document Viewer - 2/3 width */}
-        <div className="w-2/3 bg-white border-r border-gray-200 overflow-hidden">
+        <main className="flex flex-col lg:flex-row h-[calc(100vh-80px)]">
+        {/* Document Viewer - Full width on mobile, 2/3 on desktop */}
+        <div className="w-full lg:w-2/3 bg-white lg:border-r border-gray-200 overflow-hidden">
           <div className="h-full flex flex-col">
             {/* Document Header */}
-            <div className="flex items-center justify-between px-6 py-4.5 border-b border-gray-200 bg-white">
-              <div className="flex items-center space-x-3">
-                <h1 className="text-xl font-semibold text-gray-900">Resume Review</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4.5 border-b border-gray-200 bg-white">
+              <div className="flex items-center space-x-3 mb-3 sm:mb-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Resume Review</h1>
                 {hasAppliedChanges && (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -655,7 +663,7 @@ export default function ReviewPage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                 <div className="flex items-center space-x-2">
                   <select
                     value={downloadFormat}
@@ -679,14 +687,14 @@ export default function ReviewPage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span>Downloading...</span>
+                        <span className="hidden sm:inline">Downloading...</span>
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <span>Download</span>
+                        <span className="hidden sm:inline">Download</span>
                       </>
                     )}
                   </button>
@@ -703,14 +711,14 @@ export default function ReviewPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>Applying...</span>
+                      <span className="hidden sm:inline">Applying...</span>
                     </>
                   ) : (
                     <>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Apply Changes</span>
+                      <span className="hidden sm:inline">Apply Changes</span>
                     </>
                   )}
                 </button>
@@ -718,7 +726,7 @@ export default function ReviewPage() {
             </div>
 
             {/* Document Content */}
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-4 sm:p-6">
               <div className="max-w-4xl mx-auto">
                 <DocumentViewer 
                   content={cleanedResumeText}
@@ -734,11 +742,11 @@ export default function ReviewPage() {
           </div>
         </div>
 
-        {/* Comments Panel - 1/3 width */}
-        <div className="w-1/3 bg-white flex flex-col">
+        {/* Comments Panel - Full width on mobile, 1/3 on desktop */}
+        <div className="w-full lg:w-1/3 bg-white flex flex-col border-t lg:border-t-0 border-gray-200">
           {/* Comments Header */}
-          <div className="px-6 py-2 border-b border-gray-200">
-            <div className="flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-2 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Review Suggestions</h2>
                 {isLoading ? (
@@ -746,7 +754,7 @@ export default function ReviewPage() {
                 ) : error ? (
                   <p className="text-sm text-red-500">{error}</p>
                 ) : (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm text-gray-500">
                       {getSortedComments().filter(c => c.status === 'pending').length} pending suggestions
                     </p>
@@ -776,14 +784,14 @@ export default function ReviewPage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Re-reviewing...
+                        <span className="hidden sm:inline">Re-reviewing...</span>
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Re-review
+                        <span className="hidden sm:inline">Re-review</span>
                       </>
                     )}
                   </button>
@@ -871,8 +879,8 @@ export default function ReviewPage() {
                       onClick={() => toggleCommentExpansion(comment.id)}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                             comment.status === 'accepted'
                               ? 'bg-green-100'
                               : comment.status === 'rejected'
@@ -899,8 +907,8 @@ export default function ReviewPage() {
                               </svg>
                             )}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{comment.text}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate">{comment.text}</p>
                             <div className="flex items-center space-x-2 mt-1">
                               <span className={`text-xs font-medium uppercase tracking-wide ${
                                 comment.status === 'accepted'
@@ -925,7 +933,7 @@ export default function ReviewPage() {
                           </div>
                         </div>
                         <svg 
-                          className={`w-4 h-4 text-gray-400 transition-transform ${
+                          className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${
                             expandedComments.has(comment.id) ? 'rotate-180' : ''
                           }`} 
                           fill="currentColor" 
@@ -1003,7 +1011,7 @@ export default function ReviewPage() {
                 <button
                   onClick={handleAskQuestion}
                   disabled={!userQuestion.trim() || isAsking}
-                  className="px-4 py-2 bg-mfr-primary text-white text-sm rounded-md hover:bg-mfr-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 sm:px-4 py-2 bg-mfr-primary text-white text-sm rounded-md hover:bg-mfr-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isAsking ? (
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -1022,12 +1030,50 @@ export default function ReviewPage() {
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
                 </svg>
-                <span>Press Enter to send or click the microphone to speak</span>
+                <span className="hidden sm:inline">Press Enter to send or click the microphone to speak</span>
+                <span className="sm:hidden">Press Enter to send</span>
               </div>
             </div>
           </div>
         </div>
       </main>
+
+              {/* PDF Popup */}
+        {showPdfPopup && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">PDFs Coming Soon!</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              PDF downloads are currently in development. For now, please download your resume as a Word document.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  setDownloadFormat('docx');
+                  setShowPdfPopup(false);
+                  handleDownload();
+                }}
+                className="flex-1 px-4 py-2 bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 transition-colors"
+              >
+                Download as Word
+              </button>
+              <button
+                onClick={() => setShowPdfPopup(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </AuthGuard>
   );

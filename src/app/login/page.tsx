@@ -125,7 +125,7 @@ export default function LoginPage() {
             </button>
 
             {/* Microsoft Sign In */}
-            <button
+            {/* <button
               onClick={handleMicrosoftSignIn}
               disabled={isLoading}
               className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mfr-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -149,7 +149,7 @@ export default function LoginPage() {
                 />
               </svg>
               {isLoading ? 'Signing in...' : 'Continue with Microsoft'}
-            </button>
+            </button> */}
           </div>
 
           {/* Divider */}
