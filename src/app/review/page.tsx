@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import AuthGuard from '@/components/AuthGuard';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -17,6 +18,7 @@ interface Comment {
 }
 
 export default function ReviewPage() {
+  const { data: session } = useSession();
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +29,10 @@ export default function ReviewPage() {
   const [cleanedResumeText, setCleanedResumeText] = useState<string>('');
   const [isCached, setIsCached] = useState(false);
   const [isReReviewing, setIsReReviewing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isApplyingChanges, setIsApplyingChanges] = useState(false);
+  const [hasAppliedChanges, setHasAppliedChanges] = useState(false);
+  const [shouldGenerateReview, setShouldGenerateReview] = useState(true);
 
   // Configurable newline limit
   const MAX_CONSECUTIVE_NEWLINES = 3;
@@ -68,7 +74,7 @@ export default function ReviewPage() {
 
   useEffect(() => {
     const generateComments = async () => {
-      if (!cleanedResumeText) return;
+      if (!cleanedResumeText || !shouldGenerateReview) return;
       
       try {
         setIsLoading(true);
@@ -123,7 +129,7 @@ export default function ReviewPage() {
     };
 
     generateComments();
-  }, [cleanedResumeText]);
+  }, [cleanedResumeText, shouldGenerateReview]);
 
   const handleReReview = async () => {
     if (!cleanedResumeText) return;
@@ -132,7 +138,8 @@ export default function ReviewPage() {
       setIsReReviewing(true);
       setError(null);
       
-      // Clear cache first
+      setShouldGenerateReview(true);
+      
       const clearResponse = await fetch('/api/re-review-resume', {
         method: 'POST',
         headers: {
@@ -209,6 +216,111 @@ export default function ReviewPage() {
       
       return 0;
     });
+  };
+
+  /**
+   * Downloads the current resume
+   */
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      
+      const response = await fetch('/api/download-resume');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to download resume');
+      }
+      
+      const blob = await response.blob();
+      
+      const today = new Date();
+      const dateString = today.toISOString().split('T')[0]; 
+      
+      const userName = session?.user?.name || 'user';
+      const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      
+      const filename = `${cleanUserName}_resume_${dateString}.txt`;
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      setError('Failed to download resume. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  /**
+   * Applies the selected suggestions to the resume
+   */
+  const handleApplyChanges = async () => {
+    if (!cleanedResumeText || comments.length === 0) return;
+    
+    try {
+      setIsApplyingChanges(true);
+      setError(null);
+      
+      // Get accepted suggestions
+      const acceptedSuggestions = comments.filter(comment => comment.status === 'accepted');
+      
+      if (acceptedSuggestions.length === 0) {
+        setError('Please accept at least one suggestion before applying changes.');
+        return;
+      }
+      
+      // Call API to apply changes
+      const response = await fetch('/api/apply-changes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          resume: cleanedResumeText,
+          suggestions: acceptedSuggestions
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to apply changes');
+      }
+
+      const data = await response.json();
+      
+      // Update the resume text with the modified version
+      const updatedResumeText = data.updatedResume;
+      const cleanedUpdatedText = cleanExcessiveNewlines(updatedResumeText, MAX_CONSECUTIVE_NEWLINES);
+      
+      setResumeText(updatedResumeText);
+      setCleanedResumeText(cleanedUpdatedText);
+      setHasAppliedChanges(true);
+      
+      // Clear comments since they've been applied
+      setComments([]);
+      setExpandedComments(new Set());
+      
+      // Prevent automatic re-reviewing after applying changes
+      setShouldGenerateReview(false);
+      
+      console.log(`Successfully applied ${data.appliedSuggestions} suggestions to resume`);
+      
+    } catch (error) {
+      console.error('Error applying changes:', error);
+      setError('Failed to apply changes. Please try again.');
+    } finally {
+      setIsApplyingChanges(false);
+    }
   };
 
   /**
@@ -471,15 +583,63 @@ export default function ReviewPage() {
           <div className="h-full flex flex-col">
             {/* Document Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-              <div>
+              <div className="flex items-center space-x-3">
                 <h1 className="text-xl font-semibold text-gray-900">Resume Review</h1>
+                {hasAppliedChanges && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Changes Applied
+                  </span>
+                )}
               </div>
               <div className="flex items-center space-x-2">
-                <button className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-                  Download
+                <button 
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                  title="Download current resume"
+                >
+                  {isDownloading ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Downloading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Download</span>
+                    </>
+                  )}
                 </button>
-                <button className="px-3 py-1.5 text-sm bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 transition-colors">
-                  Apply Changes
+                <button 
+                  onClick={handleApplyChanges}
+                  disabled={isApplyingChanges || comments.filter(c => c.status === 'accepted').length === 0}
+                  className="px-3 py-1.5 text-sm bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                  title="Apply accepted suggestions to resume"
+                >
+                  {isApplyingChanges ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Applying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Apply Changes</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -520,33 +680,33 @@ export default function ReviewPage() {
                   </div>
                 )}
               </div>
-              {!isLoading && !error && comments.length > 0 && (
-                <button
-                  onClick={handleReReview}
-                  disabled={isReReviewing}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="Get fresh AI review (will use OpenAI tokens)"
-                >
-                  {isReReviewing ? (
-                    <>
-                      <svg className="w-4 h-4 mr-1.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Re-reviewing...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Re-review
-                    </>
-                  )}
-                </button>
-              )}
+              {!isLoading && !error && cleanedResumeText && (
+                  <button
+                    onClick={handleReReview}
+                    disabled={isReReviewing}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Get fresh AI review (will use OpenAI tokens)"
+                  >
+                    {isReReviewing ? (
+                      <>
+                        <svg className="w-4 h-4 mr-1.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Re-reviewing...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Re-review
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
           {/* Comments List */}
           <div className="flex-1 overflow-auto">
@@ -579,15 +739,35 @@ export default function ReviewPage() {
                   >
                     {/* Comment Header */}
                     <div 
-                      className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                      className={`px-4 py-3 cursor-pointer transition-colors ${
+                        comment.status === 'accepted' 
+                          ? 'bg-green-50 border-l-4 border-green-400' 
+                          : comment.status === 'rejected'
+                          ? 'bg-red-50 border-l-4 border-red-400'
+                          : 'hover:bg-gray-50'
+                      }`}
                       onClick={() => toggleCommentExpansion(comment.id)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            comment.category === 'clarity' ? 'bg-blue-100' : 'bg-red-100'
+                            comment.status === 'accepted'
+                              ? 'bg-green-100'
+                              : comment.status === 'rejected'
+                              ? 'bg-red-100'
+                              : comment.category === 'clarity' 
+                              ? 'bg-blue-100' 
+                              : 'bg-red-100'
                           }`}>
-                            {comment.category === 'clarity' ? (
+                            {comment.status === 'accepted' ? (
+                              <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            ) : comment.status === 'rejected' ? (
+                              <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            ) : comment.category === 'clarity' ? (
                               <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                               </svg>
@@ -600,8 +780,21 @@ export default function ReviewPage() {
                           <div>
                             <p className="text-sm font-medium text-gray-900">{comment.text}</p>
                             <div className="flex items-center space-x-2 mt-1">
-                              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                {comment.category === 'clarity' ? 'Clarity' : 'Word Choice'}
+                              <span className={`text-xs font-medium uppercase tracking-wide ${
+                                comment.status === 'accepted'
+                                  ? 'text-green-600'
+                                  : comment.status === 'rejected'
+                                  ? 'text-red-600'
+                                  : 'text-gray-500'
+                              }`}>
+                                {comment.status === 'accepted' 
+                                  ? 'Accepted' 
+                                  : comment.status === 'rejected'
+                                  ? 'Rejected'
+                                  : comment.category === 'clarity' 
+                                  ? 'Clarity' 
+                                  : 'Word Choice'
+                                }
                               </span>
                               <svg className="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -624,7 +817,7 @@ export default function ReviewPage() {
                     {/* Expanded Content */}
                     {expandedComments.has(comment.id) && (
                       <div className="px-4 pb-3 bg-gray-50">
-                        <p className="text-sm text-gray-700 mb-3">{comment.why}</p>
+                        <p className="text-sm text-gray-700 mb-3 pt-2">{comment.why}</p>
                         <div className="flex items-center justify-between">
                           <button
                             onClick={() => dismissComment(comment.id)}

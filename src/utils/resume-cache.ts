@@ -100,3 +100,61 @@ export async function deleteCachedResumeReview(userId: string, resumeHash: strin
     throw error;
   }
 }
+
+/**
+ * Saves a new resume version to the database
+ */
+export async function saveResumeVersion(
+  userId: string,
+  versionName: string,
+  resumeContent: string,
+  appliedSuggestions?: CachedComment[]
+): Promise<void> {
+  try {
+    await prisma.resumeVersion.create({
+      data: {
+        userId,
+        versionName,
+        resumeContent,
+        appliedSuggestions: appliedSuggestions ? JSON.stringify(appliedSuggestions) : null,
+      },
+    });
+
+    console.log(`Saved resume version "${versionName}" for user ${userId}`);
+  } catch (error) {
+    console.error('Error saving resume version:', error);
+    throw error;
+  }
+}
+
+/**
+ * Gets the latest resume version for a user
+ */
+export async function getLatestResumeVersion(userId: string): Promise<{
+  id: string;
+  versionName: string;
+  resumeContent: string;
+  appliedSuggestions?: CachedComment[];
+  createdAt: Date;
+} | null> {
+  try {
+    const latestVersion = await prisma.resumeVersion.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (latestVersion) {
+      return {
+        ...latestVersion,
+        appliedSuggestions: latestVersion.appliedSuggestions 
+          ? JSON.parse(latestVersion.appliedSuggestions) as CachedComment[]
+          : undefined,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting latest resume version:', error);
+    return null;
+  }
+}
