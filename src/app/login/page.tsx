@@ -17,14 +17,14 @@ export default function LoginPage() {
     
     try {
       const result = await signIn('google', {
-        callbackUrl: '/dashboard',
+        callbackUrl: '/resumes',
         redirect: false,
       });
 
       if (result?.error) {
         setError('Failed to sign in with Google. Please try again.');
       } else if (result?.ok) {
-        router.push('/dashboard');
+        router.push('/resumes');
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
@@ -39,14 +39,14 @@ export default function LoginPage() {
     
     try {
       const result = await signIn('microsoft', {
-        callbackUrl: '/dashboard',
+        callbackUrl: '/resumes',
         redirect: false,
       });
 
       if (result?.error) {
         setError('Failed to sign in with Microsoft. Please try again.');
       } else if (result?.ok) {
-        router.push('/dashboard');
+        router.push('/resumes');
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');

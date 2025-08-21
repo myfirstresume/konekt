@@ -70,8 +70,8 @@ export default function Header() {
               <Link href="/resumes" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Resumes
               </Link>
-              <Link href="/review" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
-                Review
+              <Link href="/mock" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+                Mock
               </Link>
               <Link href="/dashboard" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Dashboard

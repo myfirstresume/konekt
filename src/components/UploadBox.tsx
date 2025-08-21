@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 interface UploadBoxProps {
   onUploadSuccess?: (fileUrl: string, filename: string) => void;
@@ -14,9 +16,53 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
     type: 'success' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
+  const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { userId, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Check subscription status when user is authenticated
+  useEffect(() => {
+    if (!userId || isLoading) return;
+
+    const checkSubscription = async () => {
+      setIsCheckingSubscription(true);
+      try {
+        const response = await fetch(`/api/subscription?userId=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setHasActiveSubscription(data.subscription && data.subscription.status === 'active');
+        } else {
+          setHasActiveSubscription(false);
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setHasActiveSubscription(false);
+      } finally {
+        setIsCheckingSubscription(false);
+      }
+    };
+
+    checkSubscription();
+  }, [userId, isLoading]);
 
   const handleFileUpload = useCallback(async (file: File) => {
+    // Check if user is authenticated and has active subscription
+    if (userId && !isLoading && !isCheckingSubscription) {
+      if (!hasActiveSubscription) {
+        // Redirect to pricing page with file info
+        const fileData = {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        };
+        const encodedFileData = encodeURIComponent(JSON.stringify(fileData));
+        router.push(`/pricing?file=${encodedFileData}`);
+        return;
+      }
+    }
+
     setIsUploading(true);
     setUploadStatus({ type: null, message: '' });
 
@@ -67,7 +113,7 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
     } finally {
       setIsUploading(false);
     }
-  }, [onUploadSuccess, onUploadError]);
+  }, [userId, isLoading, isCheckingSubscription, hasActiveSubscription, router, onUploadSuccess, onUploadError]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

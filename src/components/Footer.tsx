@@ -1,4 +1,7 @@
+'use client';
+
 import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
 
 // Company logos configuration - easy to add new logos
 const LOGO_SCALING = 1;
@@ -10,30 +13,34 @@ const COMPANY_LOGOS = [
 ];
 
 export default function Footer() {
+  const { userId, isLoading } = useAuth();
+
   return (
     <footer className="">
-      {/* Company Logos Section */}
-      <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="text-center">
-          <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
-            Built by professionals from
-          </p>
-          
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8">
-            {COMPANY_LOGOS.map((logo, index) => (
-              <div key={index} className="flex items-center">
-                <Image
-                  src={logo.src}
-                  alt={logo.alt}
-                  width={logo.width}
-                  height={logo.height}
-                  className="h-6 sm:h-8 lg:h-10 w-auto object-contain"
-                />
-              </div>
-            ))}
+      {/* Company Logos Section - Only show when user is not signed in */}
+      {!userId && !isLoading && (
+        <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <div className="text-center">
+            <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
+              Built by professionals from
+            </p>
+            
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8">
+              {COMPANY_LOGOS.map((logo, index) => (
+                <div key={index} className="flex items-center">
+                  <Image
+                    src={logo.src}
+                    alt={logo.alt}
+                    width={logo.width}
+                    height={logo.height}
+                    className="h-6 sm:h-8 lg:h-10 w-auto object-contain"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Footer Content */}
       <div className="border-t border-gray-200 px-4 sm:px-6 lg:px-8 py-8">
@@ -84,23 +91,23 @@ export default function Footer() {
                 Company
               </h3>
               <ul className="space-y-3">
-                <li>
+                {/* <li>
                   <a href="#" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     About Us
                   </a>
-                </li>
-                <li>
+                </li> */}
+                {/* <li>
                   <a href="#" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Careers
                   </a>
-                </li>
+                </li> */}
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <a href="mailto:contact@myfirstresume.com" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Contact
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <a href="/blog" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Blog
                   </a>
                 </li>
@@ -114,11 +121,11 @@ export default function Footer() {
               </h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <a href="/privacy" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Privacy Policy
                   </a>
                 </li>
-                <li>
+                {/* <li>
                   <a href="#" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Terms of Service
                   </a>
@@ -132,7 +139,7 @@ export default function Footer() {
                   <a href="#" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     GDPR
                   </a>
-                </li>
+                </li> */}
               </ul>
             </div>
           </div>
@@ -144,12 +151,12 @@ export default function Footer() {
                 © 2025 MyFirstResume. All rights reserved.
               </p>
               <div className="flex space-x-6">
-                <a href="#" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
+                {/* <a href="#" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
                   Accessibility
                 </a>
                 <a href="#" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
                   Sitemap
-                </a>
+                </a> */}
               </div>
             </div>
           </div>
