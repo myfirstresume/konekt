@@ -37,7 +37,7 @@ export function useUploadedFiles() {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to fetch files');
       }
-    } catch (err) {
+    } catch {
       setError('Network error while fetching files');
     } finally {
       setIsLoading(false);

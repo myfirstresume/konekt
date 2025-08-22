@@ -32,7 +32,7 @@ export async function saveSuggestionsToCache(
     });
 
     // Create a map of existing suggestions by their text for easy lookup
-    const existingMap = new Map(existingSuggestions.map(s => s.text));
+    const existingMap = new Map(existingSuggestions.map(s => [s.text, true]));
 
     // Filter out suggestions that already exist
     const newSuggestions = suggestions.filter(suggestion => !existingMap.has(suggestion.text));

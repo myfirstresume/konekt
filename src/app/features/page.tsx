@@ -58,24 +58,6 @@ const features = [
   }
 ];
 
-const testimonials = [
-  {
-    quote: "The inline comments helped me understand exactly what was wrong with my resume. I got 3 interviews in the first week after using MyFirstResume!",
-    role: "Software Engineer",
-    company: "Google"
-  },
-  {
-    quote: "The AI rewrite feature is incredible. It transformed my boring bullet points into compelling achievements that actually got me noticed.",
-    role: "Consultant",
-    company: "McKinsey"
-  },
-  {
-    quote: "Being able to just talk about my experience instead of writing it was a game-changer. The AI captured everything perfectly.",
-    role: "Investment BankingAnalyst",
-    company: "Goldman Sachs"
-  }
-];
-
 export default function FeaturesPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">

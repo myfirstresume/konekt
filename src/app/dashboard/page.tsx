@@ -27,7 +27,6 @@ export default function DashboardPage() {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
-  const [isCanceling, setIsCanceling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { userId, isLoading: authLoading } = useAuth(true); // Require authentication
   const { files: uploadedFiles, isLoading: filesLoading, error: filesError } = useUploadedFiles();
@@ -69,7 +68,7 @@ export default function DashboardPage() {
       if (url) {
         window.location.href = url;
       }
-    } catch (error) {
+    } catch {
       console.error('Error creating portal session:', error);
       alert('There was an error accessing your billing portal. Please try again.');
     } finally {
@@ -77,43 +76,44 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!userId || !subscription) return;
+  // TODO: Implement cancel subscription
+  // const handleCancelSubscription = async () => {
+  //   if (!userId || !subscription) return;
     
-    const confirmed = window.confirm(
-      'Are you sure you want to cancel your subscription? You&apos;ll continue to have access until the end of your current billing period.'
-    );
+  //   const confirmed = window.confirm(
+  //     'Are you sure you want to cancel your subscription? You&apos;ll continue to have access until the end of your current billing period.'
+  //   );
     
-    if (!confirmed) return;
+  //   if (!confirmed) return;
     
-    setIsCanceling(true);
-    try {
-      const response = await fetch(`/api/cancel-subscription?userId=${userId}`, {
-        method: 'POST',
-      });
+  //   setIsCanceling(true);
+  //   try {
+  //     const response = await fetch(`/api/cancel-subscription?userId=${userId}`, {
+  //       method: 'POST',
+  //     });
       
-      const data = await response.json();
+  //     const data = await response.json();
       
-      if (data.success) {
-        // Refresh subscription data
-        const subscriptionResponse = await fetch(`/api/subscription?userId=${userId}`);
-        const subscriptionData = await subscriptionResponse.json();
+  //     if (data.success) {
+  //       // Refresh subscription data
+  //       const subscriptionResponse = await fetch(`/api/subscription?userId=${userId}`);
+  //       const subscriptionData = await subscriptionResponse.json();
         
-        if (subscriptionData.subscription) {
-          setSubscription(subscriptionData.subscription);
-        }
+  //       if (subscriptionData.subscription) {
+  //         setSubscription(subscriptionData.subscription);
+  //       }
         
-        alert('Your subscription has been canceled successfully. You&apos;ll continue to have access until the end of your current billing period.');
-      } else {
-        alert('There was an error canceling your subscription. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error canceling subscription:', error);
-      alert('There was an error canceling your subscription. Please try again.');
-    } finally {
-      setIsCanceling(false);
-    }
-  };
+  //       alert('Your subscription has been canceled successfully. You&apos;ll continue to have access until the end of your current billing period.');
+  //     } else {
+  //       alert('There was an error canceling your subscription. Please try again.');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error canceling subscription:', error);
+  //     alert('There was an error canceling your subscription. Please try again.');
+  //   } finally {
+  //     setIsCanceling(false);
+  //   }
+  // };
 
 
 

@@ -2,9 +2,11 @@ import GoogleProvider from "next-auth/providers/google";
 import MicrosoftProvider from "next-auth/providers/azure-ad";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import type { NextAuthOptions } from "next-auth";
 
-export const authOptions: NextAuthOptions = {
+// TODO: Upgrade to NextAuth v5 and fix typing
+type AuthOptions = any;
+
+export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -35,7 +37,7 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user }) {
       try {
         // Check if this is a new user
         const existingUser = await prisma.user.findUnique({
@@ -71,7 +73,7 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   events: {
-    async signIn({ user, account, profile, isNewUser }) {
+    async signIn({ user, isNewUser }) {
       try {
         if (isNewUser && user.email) {
           // Create usage tracking for new users with zero limits (they need to subscribe)

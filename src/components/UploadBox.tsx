@@ -126,7 +126,7 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
           onUploadError(errorMessage);
         }
       }
-    } catch (error) {
+    } catch {
       const errorMessage = 'Network error. Please check your connection and try again.';
       setUploadStatus({
         type: 'error',

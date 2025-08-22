@@ -1,5 +1,10 @@
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 
+
+export const DOCUMENT_FORMATS = {
+  docx: 'docx'
+} as const;
+
 /**
  * Converts text content to a DOCX file buffer
  */

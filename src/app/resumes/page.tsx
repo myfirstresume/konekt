@@ -88,7 +88,7 @@ export default function ResumesPage() {
     window.location.href = `/review?resumeId=${resume.id}`;
   };
 
-  const handleUploadSuccess = (fileUrl: string, filename: string, fileId: string) => {
+  const handleUploadSuccess = () => {
     // Refresh the file list after successful upload
     refetch();
     // Close the modal after successful upload

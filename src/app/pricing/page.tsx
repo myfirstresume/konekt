@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PricingCard from "@/components/PricingCard";
@@ -51,7 +51,7 @@ interface PricingValidation {
   configuredPrices: Record<string, string>;
 }
 
-export default function PricingPage() {
+function PricingPageContent() {
   const { userId, isLoading, user } = useAuth();
   const searchParams = useSearchParams();
   const isNewUser = searchParams.get('newUser') === 'true';
@@ -99,13 +99,10 @@ export default function PricingPage() {
 
   if (isLoading || isValidating) {
     return (
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-gray-50">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mfr-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading...</p>
-          </div>
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-mfr-primary"></div>
         </main>
         <Footer />
       </div>
@@ -113,97 +110,68 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-        <div className="max-w-7xl mx-auto">
-          {/* Welcome Message for New Users */}
-          {showWelcome && (
-            <div className="mb-8 bg-green-50 border border-green-200 rounded-lg p-6">
-              <div className="flex items-center">
+      <main className="flex-1 py-12">
+        {/* Welcome Message for New Users */}
+        {showWelcome && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-medium text-green-800">
-                    Welcome, {user?.name || user?.email}!
+                  <h3 className="text-sm font-medium text-green-800">
+                    Welcome to MyFirstResume!
                   </h3>
-                  <p className="text-green-700 mt-1">
-                    Great to have you on board! Choose a plan below to get started with your AI-powered resume reviews.
-                  </p>
-                </div>
-                <div className="ml-auto pl-3">
-                  <button
-                    onClick={() => setShowWelcome(false)}
-                    className="text-green-400 hover:text-green-600"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                  <div className="mt-2 text-sm text-green-700">
+                    <p>
+                      Your account has been created successfully. Choose a plan below to get started with your resume review.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Configuration Warning */}
-          {!pricingValidation.isValid && (
-            <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-lg font-medium text-yellow-800">
-                    Configuration Required
-                  </h3>
-                  <p className="text-yellow-700 mt-1">
-                    Stripe price IDs are not configured for: {pricingValidation.missingPrices.join(', ')}. 
-                    Please set up the environment variables to enable purchases.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Header */}
+        {/* Pricing Section */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Simple, Transparent Pricing
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Choose Your Plan
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Choose the plan that fits your career goals. All plans include AI-powered resume reviews and personalized feedback.
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Get professional resume feedback and interview preparation. All plans include unlimited access to our AI-powered tools.
             </p>
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {pricingTiers.map((tier, index) => (
-              <PricingCard 
-                key={tier.id} 
-                tier={tier} 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {pricingTiers.map((tier) => (
+              <PricingCard
+                key={tier.id}
+                tier={tier}
                 userId={userId}
               />
             ))}
           </div>
 
           {/* FAQ Section */}
-          <div className="mt-16 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
               Frequently Asked Questions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
+            <div className="space-y-6">
               {faqs.map((faq, index) => (
-                <div key={index}>
-                  <h3 className="font-semibold text-gray-900 mb-2">
+                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {faq.question}
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600">
                     {faq.answer}
                   </p>
                 </div>
@@ -212,8 +180,23 @@ export default function PricingPage() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-mfr-primary"></div>
+        </main>
+        <Footer />
+      </div>
+    }>
+      <PricingPageContent />
+    </Suspense>
   );
 }

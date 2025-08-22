@@ -2,15 +2,16 @@
 
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
 
 // Company logos configuration - easy to add new logos
 const LOGO_SCALING = 1;
-const COMPANY_LOGOS = [
-  { src: '/logos/mck.png', alt: 'McKinsey & Company', width: 120 * LOGO_SCALING, height: 40 * LOGO_SCALING },
-  { src: '/logos/otpp.png', alt: 'Ontario Teachers\' Pension Plan', width: 140 * LOGO_SCALING, height: 40 * LOGO_SCALING },
-  { src: '/logos/mstanley.png', alt: 'Morgan Stanley', width: 120 * LOGO_SCALING, height: 40 * LOGO_SCALING },
-  { src: '/logos/ey.png', alt: 'EY', width: 80 * LOGO_SCALING, height: 40 * LOGO_SCALING }
-];
+// const COMPANY_LOGOS = [
+//   { src: '/logos/mck.png', alt: 'McKinsey & Company', width: 120 * LOGO_SCALING, height: 40 * LOGO_SCALING },
+//   { src: '/logos/otpp.png', alt: 'Ontario Teachers\' Pension Plan', width: 140 * LOGO_SCALING, height: 40 * LOGO_SCALING },
+//   { src: '/logos/mstanley.png', alt: 'Morgan Stanley', width: 120 * LOGO_SCALING, height: 40 * LOGO_SCALING },
+//   { src: '/logos/ey.png', alt: 'EY', width: 80 * LOGO_SCALING, height: 40 * LOGO_SCALING }
+// ];
 
 export default function Footer() {
   const { userId, isLoading } = useAuth();
@@ -18,7 +19,7 @@ export default function Footer() {
   return (
     <footer className="">
       {/* Company Logos Section - Only show when user is not signed in */}
-      {!userId && !isLoading && (
+      {/* {!userId && !isLoading && (
         <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
             <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
@@ -40,7 +41,7 @@ export default function Footer() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Main Footer Content */}
       <div className="border-t border-gray-200 px-4 sm:px-6 lg:px-8 py-8">
@@ -106,9 +107,9 @@ export default function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a href="/blog" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <Link href="/blog" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Blog
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

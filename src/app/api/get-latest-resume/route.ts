@@ -1,21 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/auth';
 import { getLatestResumeVersion } from '@/utils/resume-cache';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import mammoth from 'mammoth';
+import type { Session } from 'next-auth';
 
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as Session | null;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get originalFileId from query parameters
+    const { searchParams } = new URL(request.url);
+    const originalFileId = searchParams.get('fileId');
+
+    if (!originalFileId) {
+      return NextResponse.json({ error: 'File ID is required' }, { status: 400 });
+    }
+
     // Try to get the latest resume version from database
-    const latestVersion = await getLatestResumeVersion(session.user.id);
+    const latestVersion = await getLatestResumeVersion(session.user.id, originalFileId);
     
     if (latestVersion) {
       // Return the latest version from database

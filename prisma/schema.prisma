@@ -166,6 +166,14 @@ model ResumeVersion {
   versionName String   // e.g., "Original", "After AI Review", "Final"
   resumeContent String // The actual resume content
   
+  // File reference
+  originalFileId String // Reference to the original uploaded file
+  
+  // Blob storage details
+  blobUrl     String   // URL to the stored file
+  fileSize    Int      // Size of the file in bytes
+  fileType    String   // MIME type of the file
+  
   // Applied suggestions
   appliedSuggestions String? // JSON string of applied suggestions
   

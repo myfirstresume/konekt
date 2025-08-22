@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { ChatMessage } from '@/types/chat';
 
 // Generate a user-specific encryption key from their session
 export function generateUserKey(userId: string, sessionToken?: string): string {
@@ -39,7 +40,7 @@ export function decryptMessage(encryptedMessage: string, key: string): string {
 }
 
 // Encrypt an array of chat messages
-export function encryptChatMessages(messages: any[], key: string): any[] {
+export function encryptChatMessages(messages: ChatMessage[], key: string): ChatMessage[] {
   return messages.map(message => ({
     ...message,
     content: encryptMessage(message.content, key),
@@ -48,7 +49,7 @@ export function encryptChatMessages(messages: any[], key: string): any[] {
 }
 
 // Decrypt an array of chat messages
-export function decryptChatMessages(encryptedMessages: any[], key: string): any[] {
+export function decryptChatMessages(encryptedMessages: ChatMessage[], key: string): ChatMessage[] {
   return encryptedMessages.map(message => ({
     ...message,
     content: decryptMessage(message.content, key),

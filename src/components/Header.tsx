@@ -12,17 +12,20 @@ export default function Header() {
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const { user, isAuthenticated, isLoading } = useAuth();
 
+  // Type assertion for user to ensure user.id is available
+  const typedUser = user as any;
+
   // Check if user has active subscription
   useEffect(() => {
     const checkSubscription = async () => {
-      if (!isAuthenticated || !user?.id) {
+      if (!isAuthenticated || !typedUser?.id) {
         setHasActiveSubscription(false);
         return;
       }
 
       setIsCheckingSubscription(true);
       try {
-        const response = await fetch(`/api/subscription?userId=${user.id}`);
+        const response = await fetch(`/api/subscription?userId=${typedUser.id}`);
         const data = await response.json();
         // Check that subscription exists, is active, and not cancelled
         setHasActiveSubscription(
@@ -39,7 +42,7 @@ export default function Header() {
     };
 
     checkSubscription();
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, typedUser?.id]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' });
@@ -86,10 +89,10 @@ export default function Header() {
                   </button>
                   <div className="w-10 h-10 rounded-full bg-mfr-primary flex items-center justify-center">
                     <span className="text-white text-base font-medium">
-                      {user?.name 
-                        ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                        : user?.email 
-                          ? user.email[0].toUpperCase()
+                      {typedUser?.name 
+                        ? typedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                        : typedUser?.email 
+                          ? typedUser.email[0].toUpperCase()
                           : 'FR'
                       }
                     </span>
@@ -119,10 +122,10 @@ export default function Header() {
                   </button>
                   <div className="w-10 h-10 rounded-full bg-mfr-primary flex items-center justify-center">
                     <span className="text-white text-base font-medium">
-                      {user?.name 
-                        ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                        : user?.email 
-                          ? user.email[0].toUpperCase()
+                      {typedUser?.name 
+                        ? typedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                        : typedUser?.email 
+                          ? typedUser.email[0].toUpperCase()
                           : 'FR'
                       }
                     </span>

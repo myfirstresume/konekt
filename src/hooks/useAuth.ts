@@ -18,7 +18,7 @@ export function useAuth(requireAuth = false) {
     session,
     status,
     user: session?.user,
-    userId: session?.user?.id,
+    userId: (session?.user as any)?.id,
     isLoading: status === 'loading',
     isAuthenticated: status === 'authenticated',
   };

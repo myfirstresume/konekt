@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn, getSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -26,34 +26,35 @@ export default function LoginPage() {
       } else if (result?.ok) {
         router.push('/resumes');
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMicrosoftSignIn = async () => {
-    setIsLoading(true);
-    setError(null);
+  // TODO: Implement Microsoft sign in
+  // const handleMicrosoftSignIn = async () => {
+  //   setIsLoading(true);
+  //   setError(null);
     
-    try {
-      const result = await signIn('microsoft', {
-        callbackUrl: '/resumes',
-        redirect: false,
-      });
+  //   try {
+  //     const result = await signIn('microsoft', {
+  //       callbackUrl: '/resumes',
+  //       redirect: false,
+  //     });
 
-      if (result?.error) {
-        setError('Failed to sign in with Microsoft. Please try again.');
-      } else if (result?.ok) {
-        router.push('/resumes');
-      }
-    } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     if (result?.error) {
+  //       setError('Failed to sign in with Microsoft. Please try again.');
+  //     } else if (result?.ok) {
+  //       router.push('/resumes');
+  //     }
+  //   } catch {
+  //     setError('An unexpected error occurred. Please try again.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

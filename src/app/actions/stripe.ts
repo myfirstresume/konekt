@@ -2,13 +2,12 @@
 
 import type { Stripe } from "stripe";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { CURRENCY } from "@/config";
 import { formatAmountForStripe } from "@/utils/stripe-helpers";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { pricingTiers, getPricingTierById } from "@/config/pricing";
+import { getPricingTierById } from "@/config/pricing";
 
 export async function createCheckoutSession(
   data: FormData,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
@@ -22,10 +22,13 @@ interface Comment {
   reference_text?: string;
 }
 
-export default function ReviewPage() {
+function ReviewPageContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const resumeId = searchParams.get('resumeId');
+  
+  // Type assertion for session to ensure user.id is available
+  const typedSession = session as any;
   
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +41,7 @@ export default function ReviewPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [resumeText, setResumeText] = useState<string>('');
   const [cleanedResumeText, setCleanedResumeText] = useState<string>('');
-  const [isCached, setIsCached] = useState(false);
+  const [isCached, setIsCached] = useState<boolean>(false);
   const [isReReviewing, setIsReReviewing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
@@ -127,7 +130,14 @@ export default function ReviewPage() {
         
         // Check if there's a latest version of this resume
         const versionResponse = await fetch(`/api/get-latest-resume-version?originalFileId=${targetFile.id}`);
-        let latestVersion = null;
+        let latestVersion: {
+          id: string;
+          versionName: string;
+          resumeContent: string;
+          blobUrl: string;
+          appliedSuggestions?: any;
+          createdAt: string;
+        } | null = null;
         
         if (versionResponse.ok) {
           const versionData = await versionResponse.json();
@@ -166,7 +176,7 @@ export default function ReviewPage() {
             
             // Process comments to find exact positions
             const processedComments = reviewData.comments.map((comment: Comment) => {
-              let exactPosition = null;
+              let exactPosition: { start: number; end: number } | null = null;
               if (comment.reference_text) {
                 exactPosition = findTextPosition(cleanedText, comment.reference_text);
               }
@@ -179,7 +189,7 @@ export default function ReviewPage() {
             // Check for cached suggestions
             try {
               const resumeHash = btoa(cleanedText).slice(0, 32);
-              const cachedSuggestions = await getCachedSuggestions(session?.user?.id || '', resumeHash);
+              const cachedSuggestions = await getCachedSuggestions(typedSession.user?.id || '', resumeHash);
               
               if (cachedSuggestions.length > 0) {
                 // Use cached suggestions
@@ -199,7 +209,7 @@ export default function ReviewPage() {
           // If review check fails, check for cached suggestions
           try {
             const resumeHash = btoa(cleanedText).slice(0, 32);
-            const cachedSuggestions = await getCachedSuggestions(session?.user?.id || '', resumeHash);
+            const cachedSuggestions = await getCachedSuggestions(typedSession.user?.id || '', resumeHash);
             
             if (cachedSuggestions.length > 0) {
               setShouldGenerateReview(false);
@@ -296,7 +306,7 @@ export default function ReviewPage() {
           // Process comments to find exact positions using reference text
           const processedComments = data.comments.map((comment: Comment, index: number) => {
             // Find exact position using reference text in CLEANED text
-            let exactPosition = null;
+            let exactPosition: { start: number; end: number } | null = null;
             if (comment.reference_text) {
               exactPosition = findTextPosition(cleanedResumeText, comment.reference_text);
             }
@@ -315,7 +325,7 @@ export default function ReviewPage() {
           // Save suggestions to cache
           try {
             const resumeHash = btoa(cleanedResumeText).slice(0, 32); // Simple hash for demo
-            await saveSuggestionsToCache(session?.user?.id || '', resumeHash, processedComments);
+            await saveSuggestionsToCache(typedSession.user?.id || '', resumeHash, processedComments);
           } catch (error) {
             console.error('Error saving suggestions to cache:', error);
           }
@@ -389,7 +399,7 @@ export default function ReviewPage() {
         // Process comments to find exact positions using reference text
         const processedComments = data.comments.map((comment: Comment, index: number) => {
           // Find exact position using reference text in CLEANED text
-          let exactPosition = null;
+          let exactPosition: { start: number; end: number } | null = null;
           if (comment.reference_text) {
             exactPosition = findTextPosition(cleanedResumeText, comment.reference_text);
           }
@@ -580,7 +590,7 @@ export default function ReviewPage() {
       
       // Clean up handled suggestions from database
       try {
-        await cleanupHandledSuggestions(session?.user?.id || '', 'resume-hash'); // You'll need to generate proper hash
+        await cleanupHandledSuggestions(typedSession.user?.id || '', 'resume-hash'); // You'll need to generate proper hash
       } catch (error) {
         console.error('Error cleaning up handled suggestions:', error);
       }
@@ -1624,5 +1634,21 @@ export default function ReviewPage() {
 
       </div>
     </AuthGuard>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-mfr-primary"></div>
+        </main>
+        <Footer />
+      </div>
+    }>
+      <ReviewPageContent />
+    </Suspense>
   );
 }
