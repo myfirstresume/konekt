@@ -1064,7 +1064,7 @@ function ReviewPageContent() {
                 {shouldGenerateReview ? 'Reviewing resume...' : 'Loading resume...'}
               </p>
               {shouldGenerateReview && (
-                <p className="text-sm text-gray-500 mt-2">This may take a moments</p>
+                <p className="text-sm text-gray-500 mt-2">This may take a moment</p>
               )}
             </div>
           </main>
