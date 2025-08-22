@@ -18,7 +18,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         <p className={`text-xs mt-1 ${
           isUser ? 'text-mfr-primary/80' : 'text-gray-600'
         }`}>
-          {message.timestamp.toLocaleTimeString([], { 
+          {new Date(message.timestamp).toLocaleTimeString([], { 
             hour: '2-digit', 
             minute: '2-digit' 
           })}

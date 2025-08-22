@@ -1,8 +1,20 @@
 import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     
@@ -39,11 +51,25 @@ export async function POST(request: NextRequest) {
       access: 'public',
     });
 
+    // Store file information in database
+    const uploadedFile = await prisma.uploadedFile.create({
+      data: {
+        userId: session.user.id,
+        filename: file.name,
+        originalName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        blobUrl: blob.url,
+        processingStatus: 'pending'
+      }
+    });
+
     return NextResponse.json({
       success: true,
       url: blob.url,
       filename: file.name,
-      size: file.size
+      size: file.size,
+      fileId: uploadedFile.id
     });
 
   } catch (error) {

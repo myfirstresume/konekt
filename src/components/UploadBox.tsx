@@ -2,10 +2,11 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUploadedFiles } from "@/hooks/useUploadedFiles";
 import { useRouter } from "next/navigation";
 
 interface UploadBoxProps {
-  onUploadSuccess?: (fileUrl: string, filename: string) => void;
+  onUploadSuccess?: (fileUrl: string, filename: string, fileId: string) => void;
   onUploadError?: (error: string) => void;
 }
 
@@ -19,7 +20,8 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { userId, isLoading } = useAuth();
+  const { userId, isLoading, isAuthenticated } = useAuth();
+  const { addFile } = useUploadedFiles();
   const router = useRouter();
 
   // Check subscription status when user is authenticated
@@ -48,19 +50,30 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
   }, [userId, isLoading]);
 
   const handleFileUpload = useCallback(async (file: File) => {
-    // Check if user is authenticated and has active subscription
-    if (userId && !isLoading && !isCheckingSubscription) {
-      if (!hasActiveSubscription) {
-        // Redirect to pricing page with file info
-        const fileData = {
-          name: file.name,
-          size: file.size,
-          type: file.type
-        };
-        const encodedFileData = encodeURIComponent(JSON.stringify(fileData));
-        router.push(`/pricing?file=${encodedFileData}`);
-        return;
-      }
+    // Check if user is authenticated
+    if (!isAuthenticated || isLoading) {
+      // Redirect to login page with file info
+      const fileData = {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      };
+      const encodedFileData = encodeURIComponent(JSON.stringify(fileData));
+      router.push(`/login?file=${encodedFileData}`);
+      return;
+    }
+
+    // Check if user has active subscription
+    if (!isCheckingSubscription && !hasActiveSubscription) {
+      // Redirect to pricing page with file info
+      const fileData = {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      };
+      const encodedFileData = encodeURIComponent(JSON.stringify(fileData));
+      router.push(`/pricing?file=${encodedFileData}`);
+      return;
     }
 
     setIsUploading(true);
@@ -83,9 +96,23 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
           message: `Successfully uploaded ${file.name}! Your resume is being processed.`
         });
         
+        // Add file to the uploaded files list
+        addFile({
+          id: result.fileId,
+          filename: file.name,
+          originalName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          blobUrl: result.url,
+          isProcessed: false,
+          processingStatus: 'pending',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+
         // Call success callback if provided
         if (onUploadSuccess) {
-          onUploadSuccess(result.url, file.name);
+          onUploadSuccess(result.url, file.name, result.fileId);
         }
       } else {
         const errorMessage = result.error || 'Upload failed. Please try again.';
@@ -113,7 +140,7 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
     } finally {
       setIsUploading(false);
     }
-  }, [userId, isLoading, isCheckingSubscription, hasActiveSubscription, router, onUploadSuccess, onUploadError]);
+  }, [isAuthenticated, isLoading, isCheckingSubscription, hasActiveSubscription, router, onUploadSuccess, onUploadError, addFile]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -145,6 +172,8 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
   const handleClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
+
+
 
   return (
     <div className="w-full max-w-sm sm:max-w-md lg:max-w-2xl mx-auto text-center">

@@ -3,13 +3,14 @@ import crypto from 'crypto';
 // Generate a user-specific encryption key from their session
 export function generateUserKey(userId: string, sessionToken?: string): string {
   const base = `${userId}-${sessionToken || 'default'}`;
-  return crypto.createHash('sha256').update(base).digest('hex').substring(0, 32);
+  // Generate a 32-byte key (64 hex characters) for AES-256
+  return crypto.createHash('sha256').update(base).digest('hex');
 }
 
 // Encrypt a message using AES-256-CBC
 export function encryptMessage(message: string, key: string): string {
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipher('aes-256-cbc', key);
+  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
   
   let encrypted = cipher.update(message, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -25,7 +26,7 @@ export function decryptMessage(encryptedMessage: string, key: string): string {
     const iv = data.subarray(0, 16);
     const encrypted = data.subarray(16).toString('hex');
     
-    const decipher = crypto.createDecipher('aes-256-cbc', key);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
     
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');

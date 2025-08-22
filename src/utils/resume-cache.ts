@@ -85,7 +85,8 @@ export async function saveResumeReviewToCache(
  */
 export async function deleteCachedResumeReview(userId: string, resumeHash: string): Promise<void> {
   try {
-    await prisma.resumeReview.delete({
+    // First check if the review exists
+    const existingReview = await prisma.resumeReview.findUnique({
       where: {
         userId_resumeHash: {
           userId,
@@ -94,10 +95,23 @@ export async function deleteCachedResumeReview(userId: string, resumeHash: strin
       },
     });
 
-    console.log(`Deleted cached resume review for user ${userId}`);
+    if (existingReview) {
+      await prisma.resumeReview.delete({
+        where: {
+          userId_resumeHash: {
+            userId,
+            resumeHash,
+          },
+        },
+      });
+      console.log(`Deleted cached resume review for user ${userId}`);
+    } else {
+      console.log(`No cached resume review found for user ${userId}, nothing to delete`);
+    }
   } catch (error) {
     console.error('Error deleting cached resume review:', error);
-    throw error;
+    // Don't throw the error - it's not critical if we can't delete a non-existent record
+    console.log('Continuing with re-review process...');
   }
 }
 
@@ -108,6 +122,10 @@ export async function saveResumeVersion(
   userId: string,
   versionName: string,
   resumeContent: string,
+  originalFileId: string,
+  blobUrl: string,
+  fileSize: number,
+  fileType: string,
   appliedSuggestions?: CachedComment[]
 ): Promise<void> {
   try {
@@ -116,6 +134,10 @@ export async function saveResumeVersion(
         userId,
         versionName,
         resumeContent,
+        originalFileId,
+        blobUrl,
+        fileSize,
+        fileType,
         appliedSuggestions: appliedSuggestions ? JSON.stringify(appliedSuggestions) : null,
       },
     });
@@ -130,16 +152,20 @@ export async function saveResumeVersion(
 /**
  * Gets the latest resume version for a user
  */
-export async function getLatestResumeVersion(userId: string): Promise<{
+export async function getLatestResumeVersion(userId: string, originalFileId: string): Promise<{
   id: string;
   versionName: string;
   resumeContent: string;
+  blobUrl: string;
   appliedSuggestions?: CachedComment[];
   createdAt: Date;
 } | null> {
   try {
     const latestVersion = await prisma.resumeVersion.findFirst({
-      where: { userId },
+      where: { 
+        userId,
+        originalFileId
+      },
       orderBy: { createdAt: 'desc' },
     });
 

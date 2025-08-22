@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { createCustomerPortalSession } from "@/app/actions/stripe";
 import { useAuth } from "@/hooks/useAuth";
+import { useUploadedFiles } from "@/hooks/useUploadedFiles";
 
 interface SubscriptionData {
   planName: string;
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [isCanceling, setIsCanceling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { userId, isLoading: authLoading } = useAuth(true); // Require authentication
+  const { files: uploadedFiles, isLoading: filesLoading, error: filesError } = useUploadedFiles();
 
   useEffect(() => {
     if (!userId) return;
@@ -113,16 +115,28 @@ export default function DashboardPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+
 
   const getUsagePercentage = (used: number, limit: number) => {
     return Math.round((used / limit) * 100);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (authLoading || isLoading) {
@@ -329,21 +343,193 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Uploaded Files */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  Uploaded Files
+                </h2>
+                
+                {filesLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mfr-primary mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading your files...</p>
+                  </div>
+                ) : filesError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-red-700">{filesError}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : uploadedFiles.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No files uploaded yet</h3>
+                    <p className="text-gray-600 mb-4">Upload your first resume to get started</p>
+                    <a
+                      href="/resumes"
+                      className="bg-mfr-primary text-white px-4 py-2 rounded-md hover:bg-mfr-primary/80"
+                    >
+                      Upload Resume
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {uploadedFiles.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{file.originalName}</h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span>{formatFileSize(file.fileSize)}</span>
+                              <span>•</span>
+                              <span>{formatDate(file.createdAt)}</span>
+                              <span>•</span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                file.processingStatus === 'completed' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : file.processingStatus === 'failed'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {file.processingStatus || 'pending'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <a
+                            href={file.blobUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-mfr-primary hover:text-mfr-primary/80 text-sm font-medium"
+                          >
+                            View
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                No Active Subscription
-              </h2>
-              <p className="text-gray-600 mb-6">
-                You don&apos;t have an active subscription. Choose a plan to get started.
-              </p>
-              <a
-                href="/pricing"
-                className="bg-mfr-primary text-white px-6 py-3 rounded-md hover:bg-mfr-primary/80"
-              >
-                View Plans
-              </a>
+            <div className="space-y-8">
+              <div className="text-center py-12">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  No Active Subscription
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  You don&apos;t have an active subscription. Choose a plan to get started.
+                </p>
+                <a
+                  href="/pricing"
+                  className="bg-mfr-primary text-white px-6 py-3 rounded-md hover:bg-mfr-primary/80"
+                >
+                  View Plans
+                </a>
+              </div>
+
+              {/* Uploaded Files */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  Uploaded Files
+                </h2>
+                
+                {filesLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mfr-primary mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading your files...</p>
+                  </div>
+                ) : filesError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-red-700">{filesError}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : uploadedFiles.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No files uploaded yet</h3>
+                    <p className="text-gray-600 mb-4">Upload your first resume to get started</p>
+                    <a
+                      href="/resumes"
+                      className="bg-mfr-primary text-white px-4 py-2 rounded-md hover:bg-mfr-primary/80"
+                    >
+                      Upload Resume
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {uploadedFiles.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{file.originalName}</h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span>{formatFileSize(file.fileSize)}</span>
+                              <span>•</span>
+                              <span>{formatDate(file.createdAt)}</span>
+                              <span>•</span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                file.processingStatus === 'completed' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : file.processingStatus === 'failed'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {file.processingStatus || 'pending'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <a
+                            href={file.blobUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-mfr-primary hover:text-mfr-primary/80 text-sm font-medium"
+                          >
+                            View
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

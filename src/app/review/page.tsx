@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DocumentViewer from '@/components/DocumentViewer';
 import ChatMessage from '@/components/ChatMessage';
 import { ChatMessage as ChatMessageType } from '@/types/chat';
+import { textToDocx } from '@/utils/document-generator';
+import { saveSuggestionsToCache, getCachedSuggestions, updateSuggestionStatus, cleanupHandledSuggestions } from '@/utils/suggestion-cache';
 
 interface Comment {
   id: string;
@@ -21,6 +24,9 @@ interface Comment {
 
 export default function ReviewPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const resumeId = searchParams.get('resumeId');
+  
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +48,13 @@ export default function ReviewPage() {
   const [downloadFormat, setDownloadFormat] = useState<'docx' | 'pdf'>('docx');
   const [currentResumeVersion, setCurrentResumeVersion] = useState<string>('original');
   const [showPdfPopup, setShowPdfPopup] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{
+    id: string;
+    filename: string;
+    originalName: string;
+    blobUrl: string;
+    fileType: string;
+  } | null>(null);
   const [usage, setUsage] = useState<{
     resumeReviewsUsed: number;
     resumeReviewsLimit: number;
@@ -67,28 +80,144 @@ export default function ReviewPage() {
   };
 
   useEffect(() => {
-    const loadResumeText = async () => {
-      try {
-        const response = await fetch('/api/get-latest-resume');
-        if (response.ok) {
-          const data = await response.json();
-          const originalText = data.text;
-          const cleanedText = cleanExcessiveNewlines(originalText, MAX_CONSECUTIVE_NEWLINES);
-          
-          setResumeText(originalText);
-          setCleanedResumeText(cleanedText);
-          setCurrentResumeVersion(data.version);
-          
-          // Don't automatically trigger review on page load
-          // Only show cached feedback if it exists
-          setShouldGenerateReview(false);
+    const loadResumeData = async () => {
+      if (!resumeId) {
+        setError('No resume ID provided');
+        setIsLoading(false);
+        return;
+      }
 
-        } else {
-          throw new Error('Failed to load resume');
+      try {
+        // First, get the file information from the database
+        const fileResponse = await fetch(`/api/uploaded-files`);
+        if (!fileResponse.ok) {
+          throw new Error('Failed to load uploaded files');
         }
+
+        const fileData = await fileResponse.json();
+        const targetFile = fileData.files.find((file: { id: string }) => file.id === resumeId);
+        
+        if (!targetFile) {
+          throw new Error('Resume not found');
+        }
+
+        setSelectedFile(targetFile);
+
+        // Parse the file content using our parsing API
+        const parseResponse = await fetch('/api/parse-resume-blob', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            blobUrl: targetFile.blobUrl,
+            fileType: targetFile.fileType
+          }),
+        });
+
+        if (!parseResponse.ok) {
+          const errorData = await parseResponse.json();
+          throw new Error(errorData.error || 'Failed to parse resume content');
+        }
+
+        const parseData = await parseResponse.json();
+        const resumeContent = parseData.text;
+
+        const cleanedText = cleanExcessiveNewlines(resumeContent, MAX_CONSECUTIVE_NEWLINES);
+        
+        // Check if there's a latest version of this resume
+        const versionResponse = await fetch(`/api/get-latest-resume-version?originalFileId=${targetFile.id}`);
+        let latestVersion = null;
+        
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json();
+          latestVersion = versionData.version;
+        }
+        
+        if (latestVersion) {
+          // Use the latest version instead of the original
+          const versionCleanedText = cleanExcessiveNewlines(latestVersion.resumeContent, MAX_CONSECUTIVE_NEWLINES);
+          setResumeText(latestVersion.resumeContent);
+          setCleanedResumeText(versionCleanedText);
+          setCurrentResumeVersion(latestVersion.versionName);
+        } else {
+          // Use the original content
+          setResumeText(resumeContent);
+          setCleanedResumeText(cleanedText);
+          setCurrentResumeVersion('original');
+        }
+        
+        // Check if there are any existing reviews for this resume
+        // If not, automatically start a review
+        const reviewResponse = await fetch('/api/assess-resume', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ resume: latestVersion ? latestVersion.resumeContent : cleanedText }),
+        });
+
+        if (reviewResponse.ok) {
+          const reviewData = await reviewResponse.json();
+          if (reviewData.comments && reviewData.comments.length > 0) {
+            // There are existing comments, don't auto-review
+            setShouldGenerateReview(false);
+            setIsCached(reviewData.cached || false);
+            
+            // Process comments to find exact positions
+            const processedComments = reviewData.comments.map((comment: Comment) => {
+              let exactPosition = null;
+              if (comment.reference_text) {
+                exactPosition = findTextPosition(cleanedText, comment.reference_text);
+              }
+              const finalPosition = exactPosition || comment.position;
+              return { ...comment, position: finalPosition };
+            });
+            
+            setComments(processedComments);
+          } else {
+            // Check for cached suggestions
+            try {
+              const resumeHash = btoa(cleanedText).slice(0, 32);
+              const cachedSuggestions = await getCachedSuggestions(session?.user?.id || '', resumeHash);
+              
+              if (cachedSuggestions.length > 0) {
+                // Use cached suggestions
+                setShouldGenerateReview(false);
+                setIsCached(true);
+                setComments(cachedSuggestions);
+              } else {
+                // No cached suggestions, start a fresh review
+                setShouldGenerateReview(true);
+              }
+            } catch (error) {
+              console.error('Error loading cached suggestions:', error);
+              setShouldGenerateReview(true);
+            }
+          }
+        } else {
+          // If review check fails, check for cached suggestions
+          try {
+            const resumeHash = btoa(cleanedText).slice(0, 32);
+            const cachedSuggestions = await getCachedSuggestions(session?.user?.id || '', resumeHash);
+            
+            if (cachedSuggestions.length > 0) {
+              setShouldGenerateReview(false);
+              setIsCached(true);
+              setComments(cachedSuggestions);
+            } else {
+              setShouldGenerateReview(true);
+            }
+          } catch (error) {
+            console.error('Error loading cached suggestions:', error);
+            setShouldGenerateReview(true);
+          }
+        }
+
       } catch (error) {
-        console.error('Error loading resume text:', error);
-        throw new Error(`Failed to load resume: ${error}`);
+        console.error('Error loading resume:', error);
+        setError(`Failed to load resume: ${error}`);
+        setIsLoading(false);
       }
     };
 
@@ -104,10 +233,10 @@ export default function ReviewPage() {
       }
     };
 
-    loadResumeText();
+    loadResumeData();
     loadUsage();
     loadChatMessages();
-  }, []);
+  }, [resumeId]);
 
   const loadUsage = async () => {
     try {
@@ -182,6 +311,14 @@ export default function ReviewPage() {
           });
           
           setComments(processedComments);
+          
+          // Save suggestions to cache
+          try {
+            const resumeHash = btoa(cleanedResumeText).slice(0, 32); // Simple hash for demo
+            await saveSuggestionsToCache(session?.user?.id || '', resumeHash, processedComments);
+          } catch (error) {
+            console.error('Error saving suggestions to cache:', error);
+          }
           
           // Refresh usage data after generating new review
           if (!data.cached) {
@@ -298,21 +435,35 @@ export default function ReviewPage() {
    * Downloads the current resume
    */
   const handleDownload = async () => {
-    // Show popup for PDF downloads
-    if (downloadFormat === 'pdf') {
-      setShowPdfPopup(true);
+    if (!selectedFile) {
+      setError('No file selected for download');
       return;
     }
+
+
     
-    try {
-      setIsDownloading(true);
-      setError(null); // Clear any previous errors
-      
-      const response = await fetch(`/api/download-resume?format=${downloadFormat}`);
+          try {
+        setIsDownloading(true);
+        setError(null); // Clear any previous errors
+        
+        // Get the latest version if available, otherwise use the original file
+        let downloadUrl = selectedFile.blobUrl;
+        
+        if (currentResumeVersion !== 'original') {
+          const versionResponse = await fetch(`/api/get-latest-resume-version?originalFileId=${selectedFile.id}`);
+          if (versionResponse.ok) {
+            const versionData = await versionResponse.json();
+            if (versionData.version) {
+              downloadUrl = versionData.version.blobUrl;
+            }
+          }
+        }
+        
+        // Fetch the file from the blob URL
+        const response = await fetch(downloadUrl);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to download resume');
+        throw new Error('Failed to download resume');
       }
       
       // Get the blob from the response
@@ -324,10 +475,17 @@ export default function ReviewPage() {
       const userName = session?.user?.name || 'user';
       const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
       
-      const filename = `${cleanUserName}_resume_${dateString}.${downloadFormat}`;
+      // Create standardized filename
+      const filename = `${cleanUserName}_resume_${dateString}_v${currentResumeVersion === 'original' ? '1' : 'latest'}.docx`;
+      
+      // Convert text to DOCX format
+      const docxBuffer = await textToDocx(resumeText);
+      const docxBlob = new Blob([new Uint8Array(docxBuffer)], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
       
       // Create a download link
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(docxBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
@@ -352,7 +510,7 @@ export default function ReviewPage() {
    * Applies the selected suggestions to the resume
    */
   const handleApplyChanges = async () => {
-    if (!cleanedResumeText || comments.length === 0) return;
+    if (!cleanedResumeText || comments.length === 0 || !selectedFile) return;
     
     try {
       setIsApplyingChanges(true);
@@ -394,9 +552,38 @@ export default function ReviewPage() {
       setCleanedResumeText(cleanedUpdatedText);
       setHasAppliedChanges(true);
       
-      // Clear comments since they've been applied
-      setComments([]);
+      // Save the new version to blob store
+      const versionResponse = await fetch('/api/save-resume-version', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeContent: updatedResumeText,
+          versionName: `After AI Review (${acceptedSuggestions.length} changes)`,
+          originalFileId: selectedFile.id,
+          appliedSuggestions: acceptedSuggestions
+        }),
+      });
+
+      if (versionResponse.ok) {
+        const versionData = await versionResponse.json();
+        setCurrentResumeVersion(versionData.version.versionName);
+        console.log('New version saved:', versionData.version.versionName);
+      } else {
+        console.warn('Failed to save version, but changes were applied');
+      }
+      
+      // Keep only pending suggestions, remove accepted ones
+      setComments(prev => prev.filter(comment => comment.status === 'pending'));
       setExpandedComments(new Set());
+      
+      // Clean up handled suggestions from database
+      try {
+        await cleanupHandledSuggestions(session?.user?.id || '', 'resume-hash'); // You'll need to generate proper hash
+      } catch (error) {
+        console.error('Error cleaning up handled suggestions:', error);
+      }
       
       // Prevent automatic re-reviewing after applying changes
       setShouldGenerateReview(false);
@@ -412,7 +599,7 @@ export default function ReviewPage() {
   };
 
   const handleApplyChatChanges = async () => {
-    if (!cleanedResumeText || chatMessages.length === 0) return;
+    if (!cleanedResumeText || chatMessages.length === 0 || !selectedFile) return;
     
     try {
       setIsApplyingChatChanges(true);
@@ -446,6 +633,28 @@ export default function ReviewPage() {
       setResumeText(updatedResumeText);
       setCleanedResumeText(cleanedUpdatedText);
       setHasAppliedChanges(true);
+      
+      // Save the new version to blob store
+      const versionResponse = await fetch('/api/save-resume-version', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeContent: updatedResumeText,
+          versionName: `After Chat Improvements`,
+          originalFileId: selectedFile.id,
+          appliedSuggestions: null
+        }),
+      });
+
+      if (versionResponse.ok) {
+        const versionData = await versionResponse.json();
+        setCurrentResumeVersion(versionData.version.versionName);
+        console.log('New version saved:', versionData.version.versionName);
+      } else {
+        console.warn('Failed to save version, but changes were applied');
+      }
       
       // Clear chat messages from database since they've been applied
       try {
@@ -630,12 +839,22 @@ export default function ReviewPage() {
     return null;
   }
 
-  const handleCommentAction = (commentId: string, action: 'accept' | 'reject') => {
+  const handleCommentAction = async (commentId: string, action: 'accept' | 'reject') => {
+    const newStatus = action === 'accept' ? 'accepted' : 'rejected';
+    
+    // Update local state
     setComments(prev => prev.map(comment => 
       comment.id === commentId 
-        ? { ...comment, status: action === 'accept' ? 'accepted' : 'rejected' }
+        ? { ...comment, status: newStatus }
         : comment
     ));
+    
+    // Update in database
+    try {
+      await updateSuggestionStatus(commentId, newStatus);
+    } catch (error) {
+      console.error('Error updating suggestion status:', error);
+    }
   };
 
   const toggleCommentExpansion = (commentId: string) => {
@@ -822,6 +1041,99 @@ export default function ReviewPage() {
     }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <AuthGuard requireSubscription={true}>
+        <div className="min-h-screen bg-gray-50">
+          <Header />
+          <main className="flex items-center justify-center h-[calc(100vh-80px)]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mfr-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">
+                {shouldGenerateReview ? 'Reviewing resume...' : 'Loading resume...'}
+              </p>
+              {shouldGenerateReview && (
+                <p className="text-sm text-gray-500 mt-2">This may take a moments</p>
+              )}
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </AuthGuard>
+    );
+  }
+
+  // Error state for no resume ID
+  if (!resumeId) {
+    return (
+      <AuthGuard requireSubscription={true}>
+        <div className="min-h-screen bg-gray-50">
+          <Header />
+          <main className="flex items-center justify-center h-[calc(100vh-80px)]">
+            <div className="text-center">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                <div className="flex items-center justify-center mb-4">
+                  <svg className="h-8 w-8 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-red-800 mb-2">No Resume Selected</h3>
+                <p className="text-red-700 mb-4">Please select a resume to review from your dashboard.</p>
+                <a
+                  href="/resumes"
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+                >
+                  Go to Resumes
+                </a>
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </AuthGuard>
+    );
+  }
+
+  // Error state for loading errors
+  if (error) {
+    return (
+      <AuthGuard requireSubscription={true}>
+        <div className="min-h-screen bg-gray-50">
+          <Header />
+          <main className="flex items-center justify-center h-[calc(100vh-80px)]">
+            <div className="text-center">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                <div className="flex items-center justify-center mb-4">
+                  <svg className="h-8 w-8 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Resume</h3>
+                <p className="text-red-700 mb-4">{error}</p>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                  <a
+                    href="/resumes"
+                    className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                  >
+                    Go to Resumes
+                  </a>
+                </div>
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </AuthGuard>
+    );
+  }
+
   return (
     <AuthGuard requireSubscription={true}>
       <div className="min-h-screen bg-gray-50">
@@ -832,9 +1144,14 @@ export default function ReviewPage() {
         <div className="w-full lg:w-2/3 bg-white lg:border-r border-gray-200 overflow-hidden">
           <div className="h-full flex flex-col">
             {/* Document Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4.5 border-b border-gray-200 bg-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-2 border-b border-gray-200 bg-white">
               <div className="flex items-center space-x-3 mb-3 sm:mb-0">
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Resume Review</h1>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Resume Review</h1>
+                  {selectedFile && (
+                    <p className="text-sm text-gray-500 mt-1">{selectedFile.originalName}</p>
+                  )}
+                </div>
                 {hasAppliedChanges && (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -846,16 +1163,9 @@ export default function ReviewPage() {
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                 <div className="flex items-center space-x-2">
-                  <select
-                    value={downloadFormat}
-                    onChange={(e) => setDownloadFormat(e.target.value as 'docx' | 'pdf')}
-                    className="px-2 py-1.5 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mfr-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 text-gray-900 font-medium"
-                    disabled={isDownloading}
-                    style={{ color: isDownloading ? '#9CA3AF' : '#111827' }}
-                  >
-                    <option value="docx">DOCX</option>
-                    <option value="pdf">PDF</option>
-                  </select>
+                  <span className="px-2 py-1.5 text-sm bg-gray-100 border border-gray-300 rounded-md text-gray-600 font-medium">
+                    DOCX
+                  </span>
                   <button 
                     onClick={handleDownload}
                     disabled={isDownloading}
@@ -1214,7 +1524,7 @@ export default function ReviewPage() {
                   </svg>
                   <span className="text-sm font-medium text-gray-700">Chat with AI</span>
                   {selectedCommentId && (
-                    <span className="text-xs text-mfr-primary bg-mfr-primary px-2 py-1 rounded-full">
+                    <span className="text-xs text-white bg-mfr-primary px-2 py-1 rounded-full">
                       Context selected
                     </span>
                   )}
@@ -1264,7 +1574,7 @@ export default function ReviewPage() {
                    <div className="bg-gray-100 text-gray-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
                      <div className="flex items-center space-x-2">
                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                       <span className="text-sm text-gray-900">AI is thinking...</span>
+                       <span className="text-sm text-gray-900">Updating memory...</span>
                      </div>
                    </div>
                  </div>
@@ -1311,42 +1621,7 @@ export default function ReviewPage() {
         </div>
       </main>
 
-              {/* PDF Popup */}
-        {showPdfPopup && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">PDFs Coming Soon!</h3>
-            </div>
-            <p className="text-gray-600 mb-6">
-              PDF downloads are currently in development. For now, please download your resume as a Word document.
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => {
-                  setDownloadFormat('docx');
-                  setShowPdfPopup(false);
-                  handleDownload();
-                }}
-                className="flex-1 px-4 py-2 bg-mfr-primary text-white rounded-md hover:bg-mfr-primary/80 transition-colors"
-              >
-                Download as Word
-              </button>
-              <button
-                onClick={() => setShowPdfPopup(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
       </div>
     </AuthGuard>
   );

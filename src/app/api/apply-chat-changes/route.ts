@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import OpenAI from 'openai';
-import { saveResumeVersion } from '@/utils/resume-cache';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,12 +24,12 @@ export async function POST(request: NextRequest) {
 
     // Build context from the chat conversation
     const chatContext = chatMessages
-      .filter((msg: any) => msg.role === 'user')
-      .map((msg: any) => `User: ${msg.content}`)
+      .filter((msg: { role: string }) => msg.role === 'user')
+      .map((msg: { content: string }) => `User: ${msg.content}`)
       .join('\n');
 
     // Build context from comments
-    const commentsContext = comments.map((comment: any) => 
+    const commentsContext = comments.map((comment: { id: string; text: string; why: string; category: string; reference_text: string }) => 
       `Comment ${comment.id}: ${comment.text}\nReason: ${comment.why}\nCategory: ${comment.category}${comment.reference_text ? `\nReference: "${comment.reference_text}"` : ''}`
     ).join('\n\n');
 
@@ -96,13 +95,10 @@ UPDATED RESUME:
       cleanResume = cleanResume.replace(/\s*```$/, '');
     }
 
-    // Save the updated resume to the database
-    const versionName = `resume_chat_improved_${Date.now()}`;
-    await saveResumeVersion(session.user.id, versionName, cleanResume, []);
+
 
     return NextResponse.json({ 
-      updatedResume: cleanResume,
-      versionName: versionName
+      updatedResume: cleanResume
     });
 
   } catch (error) {

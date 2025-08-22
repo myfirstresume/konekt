@@ -65,11 +65,17 @@ model User {
   // Resume reviews
   resumeReviews ResumeReview[]
 
+  // Resume suggestions
+  resumeSuggestions ResumeSuggestion[]
+
   // Resume versions
   resumeVersions ResumeVersion[]
 
   // Chat messages
   chatMessages ChatMessage[]
+
+  // Uploaded files
+  uploadedFiles UploadedFile[]
 
   @@map("users")
 }
@@ -189,4 +195,51 @@ model ChatMessage {
   updatedAt         DateTime @updatedAt
 
   @@map("chat_messages")
+}
+
+model UploadedFile {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // File details
+  filename    String
+  originalName String
+  fileSize    Int
+  fileType    String
+  blobUrl     String
+  
+  // Processing status
+  isProcessed Boolean  @default(false)
+  processingStatus String? // 'pending', 'processing', 'completed', 'failed'
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("uploaded_files")
+}
+
+model ResumeSuggestion {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Resume content hash to identify if resume has changed
+  resumeHash  String
+  
+  // Suggestion details
+  text        String   // The suggestion text
+  why         String   // Why this suggestion was made
+  status      String   // 'pending', 'accepted', 'rejected'
+  positionStart Int    // Start position in the resume text
+  positionEnd   Int    // End position in the resume text
+  category    String   // 'grammar', 'content', 'formatting', 'suggestion', 'clarity', 'word-choice'
+  referenceText String? // The text that was referenced
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("resume_suggestions")
 }
