@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { put } from '@vercel/blob';
 import { saveResumeVersion } from '@/utils/resume-cache';
 import { textToDocx } from '@/utils/document-generator';
+import { getUserVersionsFolder, createSafeFileName } from '@/utils/blob-helpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,33 +38,55 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the latest version number for this file
-    const latestVersion = await prisma.resumeVersion.findFirst({
-      where: { originalFileId },
-      orderBy: { createdAt: 'desc' }
-    });
+    let latestVersion;
+    try {
+      latestVersion = await prisma.resumeVersion.findFirst({
+        where: { originalFileId },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (columnError: any) {
+      // If the originalFileId column doesn't exist, start with version 1
+      if (columnError.code === 'P2022') {
+        console.log('originalFileId column does not exist yet, starting with version 1');
+        latestVersion = null;
+      } else {
+        throw columnError;
+      }
+    }
 
     // Extract version number from latest version or start with 1
     let nextVersionNumber = 1;
     if (latestVersion && latestVersion.versionName) {
+      // Try to extract version number from various formats
       const versionMatch = latestVersion.versionName.match(/v(\d+)/);
       if (versionMatch) {
         nextVersionNumber = parseInt(versionMatch[1]) + 1;
+      } else {
+        // If no version number found, increment based on count of versions
+        const versionCount = await prisma.resumeVersion.count({
+          where: { originalFileId }
+        });
+        nextVersionNumber = versionCount + 1;
       }
     }
 
-    // Create standardized filename
+    // Create standardized filename with user-specific folder structure using utility functions
+    const userId = session.user.id;
     const userName = session.user.name || session.user.email?.split('@')[0] || 'user';
-    const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const cleanUserName = createSafeFileName(userName);
     const today = new Date().toISOString().split('T')[0];
-    const versionFileName = `${cleanUserName}_resume_${today}_v${nextVersionNumber}.docx`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Add timestamp for uniqueness
+    const versionsFolder = getUserVersionsFolder(userId);
+    const blobPath = `${versionsFolder}${today}_v${nextVersionNumber}_${cleanUserName}_resume_${timestamp}.docx`;
 
     // Convert the resume content to DOCX format
     const docxBuffer = await textToDocx(resumeContent);
 
-    // Upload to blob store as proper DOCX file
-    const blob = await put(versionFileName, docxBuffer, {
+    // Upload to blob store as proper DOCX file in user-specific folder
+    const blob = await put(blobPath, docxBuffer, {
       access: 'public',
       contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      allowOverwrite: true, // Allow overwriting to handle any duplicate filenames
     });
 
     // Create a descriptive version name

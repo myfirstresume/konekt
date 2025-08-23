@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/auth';
 import type { Session } from 'next-auth';
 import { prisma } from '@/lib/prisma';
+import { getUserResumeFolder, createTimestampedFileName } from '@/utils/blob-helpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +46,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const blob = await put(file.name, file, {
+    // Create user-specific folder structure using utility functions
+    const userId = session.user.id;
+    const resumeFolder = getUserResumeFolder(userId);
+    const timestampedFileName = createTimestampedFileName(file.name);
+    const blobPath = `${resumeFolder}${timestampedFileName}`;
+
+    const blob = await put(blobPath, file, {
       access: 'public',
     });
 

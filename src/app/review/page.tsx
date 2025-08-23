@@ -51,6 +51,7 @@ function ReviewPageContent() {
   const [downloadFormat, setDownloadFormat] = useState<'docx' | 'pdf'>('docx');
   const [currentResumeVersion, setCurrentResumeVersion] = useState<string>('original');
   const [showPdfPopup, setShowPdfPopup] = useState(false);
+  const [isResumeDataLoaded, setIsResumeDataLoaded] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{
     id: string;
     filename: string;
@@ -89,6 +90,9 @@ function ReviewPageContent() {
         setIsLoading(false);
         return;
       }
+
+      // Reset resume data loaded state
+      setIsResumeDataLoaded(false);
 
       try {
         // First, get the file information from the database
@@ -157,72 +161,40 @@ function ReviewPageContent() {
           setCurrentResumeVersion('original');
         }
         
-        // Check if there are any existing reviews for this resume
-        // If not, automatically start a review
-        const reviewResponse = await fetch('/api/assess-resume', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ resume: latestVersion ? latestVersion.resumeContent : cleanedText }),
-        });
-
-        if (reviewResponse.ok) {
-          const reviewData = await reviewResponse.json();
-          if (reviewData.comments && reviewData.comments.length > 0) {
-            // There are existing comments, don't auto-review
+        // Check if there are any existing reviews for this resume using GET request
+        // This won't count as a new review
+        // Note: Cache is tied to the specific resume content, so different versions will have different cache entries
+        try {
+          // Use the same cleaned text that will be used for the review
+          const textToHash = latestVersion ? cleanExcessiveNewlines(latestVersion.resumeContent, MAX_CONSECUTIVE_NEWLINES) : cleanedText;
+          // Create a more robust hash by normalizing the text first
+          const normalizedText = textToHash.trim().replace(/\s+/g, ' ');
+          const resumeHash = btoa(normalizedText).slice(0, 32);
+          console.log('Checking cache for resume hash:', resumeHash);
+          const cachedSuggestions = await getCachedSuggestions(typedSession.user?.id || '', resumeHash);
+          
+          if (cachedSuggestions.length > 0) {
+            // Use cached suggestions
+            console.log('Found cached suggestions:', cachedSuggestions.length);
             setShouldGenerateReview(false);
-            setIsCached(reviewData.cached || false);
-            
-            // Process comments to find exact positions
-            const processedComments = reviewData.comments.map((comment: Comment) => {
-              let exactPosition: { start: number; end: number } | null = null;
-              if (comment.reference_text) {
-                exactPosition = findTextPosition(cleanedText, comment.reference_text);
-              }
-              const finalPosition = exactPosition || comment.position;
-              return { ...comment, position: finalPosition };
-            });
-            
-            setComments(processedComments);
+            setIsCached(true);
+            setComments(cachedSuggestions);
           } else {
-            // Check for cached suggestions
-            try {
-              const resumeHash = btoa(cleanedText).slice(0, 32);
-              const cachedSuggestions = await getCachedSuggestions(typedSession.user?.id || '', resumeHash);
-              
-              if (cachedSuggestions.length > 0) {
-                // Use cached suggestions
-                setShouldGenerateReview(false);
-                setIsCached(true);
-                setComments(cachedSuggestions);
-              } else {
-                // No cached suggestions, start a fresh review
-                setShouldGenerateReview(true);
-              }
-            } catch (error) {
-              console.error('Error loading cached suggestions:', error);
-              setShouldGenerateReview(true);
-            }
-          }
-        } else {
-          // If review check fails, check for cached suggestions
-          try {
-            const resumeHash = btoa(cleanedText).slice(0, 32);
-            const cachedSuggestions = await getCachedSuggestions(typedSession.user?.id || '', resumeHash);
-            
-            if (cachedSuggestions.length > 0) {
-              setShouldGenerateReview(false);
-              setIsCached(true);
-              setComments(cachedSuggestions);
-            } else {
-              setShouldGenerateReview(true);
-            }
-          } catch (error) {
-            console.error('Error loading cached suggestions:', error);
+            // No cached suggestions, start a fresh review
+            console.log('No cached suggestions found, will generate new review');
             setShouldGenerateReview(true);
           }
+        } catch (error) {
+          console.error('Error loading cached suggestions:', error);
+          // If there's an error loading cached suggestions, start a fresh review
+          setShouldGenerateReview(true);
         }
+
+        // Mark resume data as loaded
+        setIsResumeDataLoaded(true);
+        console.log('Resume data loaded successfully, shouldGenerateReview:', shouldGenerateReview);
+        console.log('Current resume version:', currentResumeVersion);
+        console.log('Resume text length:', cleanedResumeText.length);
 
       } catch (error) {
         console.error('Error loading resume:', error);
@@ -276,9 +248,19 @@ function ReviewPageContent() {
         setIsLoading(false);
         return;
       }
+
+      // Don't generate reviews while applying changes
+      if (isApplyingChanges) {
+        return;
+      }
       
-      // Original logic for generating new comments
-      if (!shouldGenerateReview) return;
+      // Ensure we have resume data loaded before proceeding
+      if (!isResumeDataLoaded) {
+        console.log('Waiting for resume data to load...');
+        return;
+      }
+      
+      console.log('Generating comments for resume...');
       
       try {
         setIsLoading(true);
@@ -324,8 +306,14 @@ function ReviewPageContent() {
           
           // Save suggestions to cache
           try {
-            const resumeHash = btoa(cleanedResumeText).slice(0, 32); // Simple hash for demo
+            // Use the same hash generation logic as loadResumeData
+            const textToHash = cleanedResumeText;
+            // Create a more robust hash by normalizing the text first
+            const normalizedText = textToHash.trim().replace(/\s+/g, ' ');
+            const resumeHash = btoa(normalizedText).slice(0, 32);
+            console.log('Saving suggestions to cache with hash:', resumeHash);
             await saveSuggestionsToCache(typedSession.user?.id || '', resumeHash, processedComments);
+            console.log('Successfully saved suggestions to cache');
           } catch (error) {
             console.error('Error saving suggestions to cache:', error);
           }
@@ -346,7 +334,7 @@ function ReviewPageContent() {
     };
 
     generateComments();
-  }, [cleanedResumeText, shouldGenerateReview]);
+  }, [shouldGenerateReview, isApplyingChanges, isResumeDataLoaded]); // Add isResumeDataLoaded to dependencies
 
   const handleReReview = async () => {
     if (!cleanedResumeText) return;
@@ -562,7 +550,6 @@ function ReviewPageContent() {
       setCleanedResumeText(cleanedUpdatedText);
       setHasAppliedChanges(true);
       
-      // Save the new version to blob store
       const versionResponse = await fetch('/api/save-resume-version', {
         method: 'POST',
         headers: {
@@ -579,9 +566,11 @@ function ReviewPageContent() {
       if (versionResponse.ok) {
         const versionData = await versionResponse.json();
         setCurrentResumeVersion(versionData.version.versionName);
-        console.log('New version saved:', versionData.version.versionName);
+        console.log('New version saved successfully:', versionData.version.versionName);
       } else {
-        console.warn('Failed to save version, but changes were applied');
+        const errorData = await versionResponse.json();
+        console.error('Failed to save version:', errorData.error);
+        setError('Changes were applied but failed to save version. Your changes may be lost on refresh.');
       }
       
       // Keep only pending suggestions, remove accepted ones
@@ -645,6 +634,7 @@ function ReviewPageContent() {
       setHasAppliedChanges(true);
       
       // Save the new version to blob store
+      console.log('Saving new version after applying chat changes...');
       const versionResponse = await fetch('/api/save-resume-version', {
         method: 'POST',
         headers: {
@@ -661,9 +651,11 @@ function ReviewPageContent() {
       if (versionResponse.ok) {
         const versionData = await versionResponse.json();
         setCurrentResumeVersion(versionData.version.versionName);
-        console.log('New version saved:', versionData.version.versionName);
+        console.log('New version saved successfully:', versionData.version.versionName);
       } else {
-        console.warn('Failed to save version, but changes were applied');
+        const errorData = await versionResponse.json();
+        console.error('Failed to save version:', errorData.error);
+        setError('Changes were applied but failed to save version. Your changes may be lost on refresh.');
       }
       
       // Clear chat messages from database since they've been applied

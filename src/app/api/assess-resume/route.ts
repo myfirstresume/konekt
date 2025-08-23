@@ -53,9 +53,8 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    // Increment review count when generating new review
     try {
-      await prisma.subscriptionUsage.upsert({
+      const updatedUsage = await prisma.subscriptionUsage.upsert({
         where: { userId: session.user.id },
         update: {
           resumeReviewsUsed: {
@@ -75,6 +74,7 @@ export async function POST(request: NextRequest) {
           usageResetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1) // First day of next month
         }
       });
+      console.log(`Updated review count: ${updatedUsage.resumeReviewsUsed}/${updatedUsage.resumeReviewsLimit}`);
     } catch (error) {
       console.error('Error updating review count:', error);
       // Continue with review generation even if tracking fails

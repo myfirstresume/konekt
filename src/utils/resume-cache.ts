@@ -143,7 +143,13 @@ export async function saveResumeVersion(
     });
 
     console.log(`Saved resume version "${versionName}" for user ${userId}`);
-  } catch (error) {
+  } catch (error: any) {
+    // Check if this is a column missing error
+    if (error.code === 'P2022') {
+      console.log('originalFileId column does not exist yet, cannot save resume version');
+      throw new Error('Database schema not ready for resume version saving. Please try again later.');
+    }
+    
     console.error('Error saving resume version:', error);
     throw error;
   }
@@ -161,13 +167,24 @@ export async function getLatestResumeVersion(userId: string, originalFileId: str
   createdAt: Date;
 } | null> {
   try {
-    const latestVersion = await prisma.resumeVersion.findFirst({
-      where: { 
-        userId,
-        originalFileId
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Check if the originalFileId column exists by trying a simple query first
+    let latestVersion;
+    try {
+      latestVersion = await prisma.resumeVersion.findFirst({
+        where: { 
+          userId,
+          originalFileId
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (columnError: any) {
+      // If the column doesn't exist, return null gracefully
+      if (columnError.code === 'P2022') {
+        console.log('originalFileId column does not exist yet, returning null');
+        return null;
+      }
+      throw columnError;
+    }
 
     if (latestVersion) {
       return {
