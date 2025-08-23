@@ -7,7 +7,7 @@ import { del } from '@vercel/blob';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -16,7 +16,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const fileId = params.id;
+    const { id: fileId } = await params;
 
     if (!fileId) {
       return NextResponse.json({ error: 'File ID is required' }, { status: 400 });
