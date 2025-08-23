@@ -36,16 +36,12 @@ export default function DashboardPage() {
 
     const fetchSubscription = async () => {
       try {
-        console.log('Fetching subscription for userId:', userId);
         const response = await fetch(`/api/subscription?userId=${userId}`);
         const data = await response.json();
-        
-        console.log('Subscription API response:', data);
         
         if (data.subscription) {
           setSubscription(data.subscription);
         } else {
-          console.log('No subscription found in response');
           setSubscription(null);
         }
       } catch (error) {

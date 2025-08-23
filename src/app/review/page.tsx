@@ -170,31 +170,23 @@ function ReviewPageContent() {
           // Create a more robust hash by normalizing the text first
           const normalizedText = textToHash.trim().replace(/\s+/g, ' ');
           const resumeHash = btoa(normalizedText).slice(0, 32);
-          console.log('Checking cache for resume hash:', resumeHash);
           const cachedSuggestions = await getCachedSuggestions(typedSession.user?.id || '', resumeHash);
           
           if (cachedSuggestions.length > 0) {
             // Use cached suggestions
-            console.log('Found cached suggestions:', cachedSuggestions.length);
             setShouldGenerateReview(false);
             setIsCached(true);
             setComments(cachedSuggestions);
           } else {
             // No cached suggestions, start a fresh review
-            console.log('No cached suggestions found, will generate new review');
             setShouldGenerateReview(true);
           }
         } catch (error) {
           console.error('Error loading cached suggestions:', error);
-          // If there's an error loading cached suggestions, start a fresh review
           setShouldGenerateReview(true);
         }
 
-        // Mark resume data as loaded
         setIsResumeDataLoaded(true);
-        console.log('Resume data loaded successfully, shouldGenerateReview:', shouldGenerateReview);
-        console.log('Current resume version:', currentResumeVersion);
-        console.log('Resume text length:', cleanedResumeText.length);
 
       } catch (error) {
         console.error('Error loading resume:', error);
@@ -256,11 +248,8 @@ function ReviewPageContent() {
       
       // Ensure we have resume data loaded before proceeding
       if (!isResumeDataLoaded) {
-        console.log('Waiting for resume data to load...');
         return;
       }
-      
-      console.log('Generating comments for resume...');
       
       try {
         setIsLoading(true);
@@ -311,9 +300,7 @@ function ReviewPageContent() {
             // Create a more robust hash by normalizing the text first
             const normalizedText = textToHash.trim().replace(/\s+/g, ' ');
             const resumeHash = btoa(normalizedText).slice(0, 32);
-            console.log('Saving suggestions to cache with hash:', resumeHash);
             await saveSuggestionsToCache(typedSession.user?.id || '', resumeHash, processedComments);
-            console.log('Successfully saved suggestions to cache');
           } catch (error) {
             console.error('Error saving suggestions to cache:', error);
           }
@@ -566,7 +553,6 @@ function ReviewPageContent() {
       if (versionResponse.ok) {
         const versionData = await versionResponse.json();
         setCurrentResumeVersion(versionData.version.versionName);
-        console.log('New version saved successfully:', versionData.version.versionName);
       } else {
         const errorData = await versionResponse.json();
         console.error('Failed to save version:', errorData.error);
@@ -586,8 +572,6 @@ function ReviewPageContent() {
       
       // Prevent automatic re-reviewing after applying changes
       setShouldGenerateReview(false);
-      
-      console.log(`Successfully applied ${data.appliedSuggestions} suggestions to resume`);
       
     } catch (error) {
       console.error('Error applying changes:', error);
@@ -633,8 +617,6 @@ function ReviewPageContent() {
       setCleanedResumeText(cleanedUpdatedText);
       setHasAppliedChanges(true);
       
-      // Save the new version to blob store
-      console.log('Saving new version after applying chat changes...');
       const versionResponse = await fetch('/api/save-resume-version', {
         method: 'POST',
         headers: {
@@ -651,7 +633,6 @@ function ReviewPageContent() {
       if (versionResponse.ok) {
         const versionData = await versionResponse.json();
         setCurrentResumeVersion(versionData.version.versionName);
-        console.log('New version saved successfully:', versionData.version.versionName);
       } else {
         const errorData = await versionResponse.json();
         console.error('Failed to save version:', errorData.error);
@@ -670,10 +651,7 @@ function ReviewPageContent() {
       setChatMessages([]);
       setSelectedCommentId(null);
       
-      // Prevent automatic re-reviewing after applying changes
       setShouldGenerateReview(false);
-      
-      console.log(`Successfully applied chat-based improvements to resume`);
       
     } catch (error) {
       console.error('Error applying chat changes:', error);
@@ -821,12 +799,10 @@ function ReviewPageContent() {
         if (start >= 0 && end <= resumeText.length && start < end) {
           return result;
         } else {
-          console.log(`Invalid position range: ${start}-${end} (resume length: ${resumeText.length})`);
+          console.error(`Invalid position range: ${start}-${end} (resume length: ${resumeText.length})`);
         }
       }
     }
-
-    console.log(`Reference text not found in any strategy: "${referenceText}"`);
     
     const words = referenceText.split(/\s+/).filter(w => w.length > 2);
     if (words.length > 0) {

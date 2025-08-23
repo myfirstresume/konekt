@@ -10,7 +10,7 @@ export default function Home() {
 
   const handleUploadSuccess = (fileUrl: string, filename: string) => {
     // Handle successful upload - could redirect to AI review page
-    console.log('Upload successful:', { fileUrl, filename });
+    console.log('Upload successful:', { filename });
     // Here you would typically redirect to the AI review page
     // or trigger the AI processing
   };
