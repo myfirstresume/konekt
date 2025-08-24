@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DocumentViewer from '@/components/DocumentViewer';
 import ChatMessage from '@/components/ChatMessage';
+import JobDescriptionModal from '@/components/JobDescriptionModal';
 import { ChatMessage as ChatMessageType } from '@/types/chat';
 import { textToDocx } from '@/utils/document-generator';
 import { saveSuggestionsToCache, getCachedSuggestions, updateSuggestionStatus, cleanupHandledSuggestions } from '@/utils/suggestion-cache';
@@ -69,6 +70,8 @@ function ReviewPageContent() {
     liveMocksUsed: number;
     liveMocksLimit: number;
   } | null>(null);
+  const [jobDescription, setJobDescription] = useState<string>('');
+  const [showJobDescriptionModal, setShowJobDescriptionModal] = useState(false);
 
   // Configurable newline limit
   const MAX_CONSECUTIVE_NEWLINES = 3;
@@ -229,6 +232,11 @@ function ReviewPageContent() {
     window.location.href = '/pricing';
   };
 
+  const handleJobDescriptionAdded = (description: string) => {
+    setJobDescription(description);
+    setShouldGenerateReview(true);
+  };
+
   useEffect(() => {
     const generateComments = async () => {
       if (!cleanedResumeText) return;
@@ -260,7 +268,10 @@ function ReviewPageContent() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ resume: cleanedResumeText }),
+          body: JSON.stringify({ 
+            resume: cleanedResumeText,
+            jobDescription: jobDescription 
+          }),
         });
 
         if (!response.ok) {
@@ -321,7 +332,7 @@ function ReviewPageContent() {
     };
 
     generateComments();
-  }, [shouldGenerateReview, isApplyingChanges, isResumeDataLoaded]); // Add isResumeDataLoaded to dependencies
+  }, [shouldGenerateReview, isApplyingChanges, isResumeDataLoaded, jobDescription]); // Add jobDescription to dependencies
 
   const handleReReview = async () => {
     if (!cleanedResumeText) return;
@@ -357,7 +368,10 @@ function ReviewPageContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ resume: cleanedResumeText }),
+        body: JSON.stringify({ 
+          resume: cleanedResumeText,
+          jobDescription: jobDescription 
+        }),
       });
 
       if (!response.ok) {
@@ -1138,6 +1152,14 @@ function ReviewPageContent() {
                     Changes Applied
                   </span>
                 )}
+                {jobDescription && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    Job Description Added
+                  </span>
+                )}
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                 <div className="flex items-center space-x-2">
@@ -1166,6 +1188,16 @@ function ReviewPageContent() {
                         <span className="hidden sm:inline">Download</span>
                       </>
                     )}
+                  </button>
+                  <button 
+                    onClick={() => setShowJobDescriptionModal(true)}
+                    className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors flex items-center space-x-1"
+                    title="Add job description for tailored feedback"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="hidden sm:inline">Add Job</span>
                   </button>
                 </div>
                 <button 
@@ -1282,10 +1314,10 @@ function ReviewPageContent() {
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        <span className="hidden sm:inline">Re-review</span>
+                        {/* <span className="hidden sm:inline">Re-review</span> */}
                       </>
                     )}
                   </button>
@@ -1599,7 +1631,11 @@ function ReviewPageContent() {
         </div>
       </main>
 
-
+      <JobDescriptionModal
+        isOpen={showJobDescriptionModal}
+        onClose={() => setShowJobDescriptionModal(false)}
+        onJobDescriptionAdded={handleJobDescriptionAdded}
+      />
       </div>
     </AuthGuard>
   );

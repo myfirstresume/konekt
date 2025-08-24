@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/auth';
 import type { Session } from 'next-auth';
 import OpenAI from 'openai';
-import instructions from '@/prompts/instructions';
+import createInstructions from '@/prompts/instructions';
 import { 
   generateResumeHash, 
   getCachedResumeReview, 
@@ -20,8 +20,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { resume } = await request.json();
+    const { resume, jobDescription } = await request.json();
     
+    console.log('jobDescription', jobDescription);
     if (!resume) {
       return NextResponse.json({ error: 'Resume content is required' }, { status: 400 });
     }
@@ -77,16 +78,15 @@ export async function POST(request: NextRequest) {
       console.log(`Updated review count: ${updatedUsage.resumeReviewsUsed}/${updatedUsage.resumeReviewsLimit}`);
     } catch (error) {
       console.error('Error updating review count:', error);
-      // Continue with review generation even if tracking fails
     }
 
     console.log(`No cache found, calling OpenAI...`);
 
-    // Initialize OpenAI client
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
-
+    const instructions = createInstructions(jobDescription || '');
+    
     // Call OpenAI API
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
