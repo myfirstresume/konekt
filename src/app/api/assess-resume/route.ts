@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     const { resume, jobDescription } = await request.json();
     
-    console.log('jobDescription', jobDescription);
+    // console.log('jobDescription', jobDescription);
     if (!resume) {
       return NextResponse.json({ error: 'Resume content is required' }, { status: 400 });
     }
