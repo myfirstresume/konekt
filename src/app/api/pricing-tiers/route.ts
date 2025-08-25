@@ -54,7 +54,7 @@ export async function GET() {
       name: "Mocks",
       price: 25,
       period: "/mo",
-      description: "Get 3 live mocks per month",
+      description: "Get 4 live mocks per month",
       features: [
         "4 live mocks per month",
         "Live personalized feedback",
