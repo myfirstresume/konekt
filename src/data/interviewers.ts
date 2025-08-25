@@ -3,10 +3,10 @@ import { InterviewCard } from '@/types/interview';
 export const interviewers: InterviewCard[] = [
   {
     id: '1',
-    position: 'Business Analyst',
-    company: 'McKinsey & Company',
+    position: 'Private Equity Associate',
+    company: 'Ontario Teachers Pension Plan',
     tenure: 2,
-    signUpLink: 'https://cal.com/mck-ba/30min',
-    thumbnail: '/logos/mck.png'
+    signUpLink: 'https://cal.com/private-equity/30min',
+    thumbnail: '/logos/otpp.png'
   },
 ];

@@ -66,26 +66,24 @@ export const pricingTiers: PricingTier[] = [
     }
   },
   {
-    id: 'senior',
-    name: "Senior",
-    price: 70,
+    id: 'mocks',
+    name: "Mocks",
+    price: 25,
     period: "/mo",
-    description: "Share with friends and save together",
+    description: "Get 4 live mocks per month",
     features: [
-      "15 resume reviews for you and 2 friends",
-      "$3 per additional review",
-      "500 follow up questions",
-      "3 live mocks"
+      "4 live mocks per month",
+      "$10 per additional mock"
     ],
     popular: false,
-    buttonText: "Get Senior",
+    buttonText: "Get Mocks",
     buttonVariant: "outline",
-    stripePriceId: process.env.STRIPE_SENIOR_PRICE_ID || '',
+    stripePriceId: process.env.STRIPE_MOCKS_PRICE_ID || '',
     limits: {
-      resumeReviews: 15,
-      followUpQuestions: 500,
-      voiceNotes: 50,
-      liveMocks: 3
+      resumeReviews: 0,
+      followUpQuestions: 0,
+      voiceNotes: 0,
+      liveMocks: 4
     }
   }
 ];
