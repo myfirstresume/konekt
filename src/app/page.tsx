@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const { userId, isLoading } = useAuth();
   const router = useRouter();
-  const LOGO_SCALING = 4;
+  const LOGO_SCALING = 2;
 
   const handleUploadSuccess = (fileUrl: string, filename: string) => {
     // Handle successful upload - could redirect to AI review page
@@ -186,7 +186,7 @@ export default function Home() {
               </div>
 
               {/* Scrolling Logos Section */}
-              <div className="text-center">
+              {/* <div className="text-center">
                 <p className="text-lg text-gray-600 mb-4">We&apos;ve helped candidates get hired at:</p>
                 <div className="relative overflow-hidden max-w-4xl mx-auto">
                   <div className="flex animate-scroll space-x-8">
@@ -197,9 +197,9 @@ export default function Home() {
                       <Image src="/logos/mck.png" alt="McKinsey" width={80 * LOGO_SCALING} height={40 * LOGO_SCALING} className="h-8 w-auto grayscale opacity-50" />
                       <Image src="/logos/mstanley.png" alt="Morgan Stanley" width={80 * LOGO_SCALING} height={40 * LOGO_SCALING} className="h-8 w-auto grayscale opacity-50" />
                       <Image src="/logos/otpp.png" alt="OTPP" width={80 * LOGO_SCALING} height={40 * LOGO_SCALING} className="h-8 w-auto grayscale opacity-50" />
-                    </div>
+                    </div> */}
                     {/* Duplicate logos for seamless scrolling */}
-                    <div className="flex space-x-16 min-w-max">
+                    {/* <div className="flex space-x-16 min-w-max">
                       <Image src="/logos/google.png" alt="Google" width={80 * LOGO_SCALING} height={40 * LOGO_SCALING} className="h-8 w-auto grayscale opacity-50" />
                       <Image src="/logos/bain.jpg" alt="Bain" width={80 * LOGO_SCALING} height={40 * LOGO_SCALING} className="h-8 w-auto grayscale opacity-50" />
                       <Image src="/logos/ey.png" alt="EY" width={80 * LOGO_SCALING} height={40 * LOGO_SCALING} className="h-8 w-auto grayscale opacity-50" />
@@ -209,7 +209,7 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Features Section */}
               <div className="text-center space-y-8">
