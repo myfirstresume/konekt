@@ -73,7 +73,7 @@ export const pricingTiers: PricingTier[] = [
     description: "Get 4 live mocks per month",
     features: [
       "4 live mocks per month",
-      "$10 per additional mock"
+      "$10 per additional mock",
     ],
     popular: false,
     buttonText: "Get Mocks",
