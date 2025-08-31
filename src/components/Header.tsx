@@ -55,8 +55,8 @@ export default function Header() {
         <Image
           src="/mfr_logo.png"
           alt="MyFirstResume Logo"
-          width={32}
-          height={32}
+          width={40}
+          height={40}
           className="w-6 h-6 sm:w-8 sm:h-8"
         />
         <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">MyFirstResume</h1>
