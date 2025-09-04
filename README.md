@@ -1,6 +1,6 @@
-# MyFirstResume
+# NoSmallTalk
 
-MyFirstResume is a platform that helps you create your first resume.
+NoSmallTalk is a platform that helps you create your first resume.
 
 # Development
 
