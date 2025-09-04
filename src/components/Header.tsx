@@ -54,12 +54,12 @@ export default function Header() {
       <Link href="/" className="flex items-center space-x-2 sm:space-x-3">
         <Image
           src="/mfr_logo.png"
-          alt="MyFirstResume Logo"
+          alt="NoSmallTalk Logo"
           width={40}
           height={40}
           className="w-6 h-6 sm:w-7 sm:h-7"
         />
-        <h1 className="text-lg sm:text-xl font-bold text-gray-900">MyFirstResume</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900">NoSmallTalk</h1>
       </Link>
 
       {/* Desktop Navigation */}
@@ -137,12 +137,12 @@ export default function Header() {
         ) : (
           // User is not authenticated - show public navigation
           <>
-            <a href="/students" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+            <Link href="/students" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
               For students
-            </a>
-            <a href="/professionals" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+            </Link>
+            <Link href="/professionals" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
               For professionals
-            </a>
+            </Link>
             {/* <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
               Pricing
             </a> */}
@@ -312,20 +312,20 @@ export default function Header() {
             ) : (
               // User is not authenticated - show public navigation
               <>
-                <a 
-                  href="/features" 
+                <Link 
+                  href="/students" 
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   For students
-                </a>
-                <a 
-                  href="/pricing" 
+                </Link>
+                <Link 
+                  href="/professionals" 
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   For professionals
-                </a>
+                </Link>
                 <a 
                   href="/features" 
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"

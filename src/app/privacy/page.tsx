@@ -19,7 +19,7 @@ export default function Privacy() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Information We Collect</h2>
               <p className="text-gray-700 mb-4">
-                When you use MyFirstResume, we collect the following information:
+                When you use NoSmallTalk, we collect the following information:
               </p>
               <ul className="list-disc pl-6 text-gray-700 space-y-2">
                 <li>Account information (email address, name) when you create an account</li>
@@ -62,7 +62,7 @@ export default function Privacy() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Company Affiliations</h2>
               <p className="text-gray-700 mb-4">
-                MyFirstResume operates independently and is not affiliated with any of the companies mentioned 
+                NoSmallTalk operates independently and is not affiliated with any of the companies mentioned 
                 in our AI feedback or review content. Any references to specific companies are used solely for 
                 educational and illustrative purposes to provide relevant career guidance.
               </p>
@@ -133,7 +133,7 @@ export default function Privacy() {
               </p>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
                 <p className="text-gray-700">
-                  Email: <a href="mailto:contact@myfirstresume.com" className="text-blue-600 hover:text-blue-800">contact@myfirstresume.com</a>
+                  Email: <a href="mailto:contact@NoSmallTalk.com" className="text-blue-600 hover:text-blue-800">contact@NoSmallTalk.com</a>
                 </p>
               </div>
             </section>

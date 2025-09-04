@@ -52,12 +52,12 @@ export default function Footer() {
               <div className="flex items-center space-x-2 mb-4">
                 <Image
                   src="/mfr_logo.png"
-                  alt="MyFirstResume Logo"
+                  alt="NoSmallTalk Logo"
                   width={24}
                   height={24}
                   className="w-6 h-6"
                 />
-                <h3 className="text-lg font-bold text-gray-900">MyFirstResume</h3>
+                <h3 className="text-lg font-bold text-gray-900">NoSmallTalk</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4 max-w-md">
                 Combining years of experience from top companies from top companies with AI to help you get your first job.
@@ -102,7 +102,7 @@ export default function Footer() {
                   </a>
                 </li> */}
                 <li>
-                  <a href="mailto:contact@myfirstresume.com" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  <a href="mailto:contact@NoSmallTalk.com" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                     Contact
                   </a>
                 </li>
@@ -148,7 +148,7 @@ export default function Footer() {
           <div className="mt-8 pt-8 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
               <p className="text-gray-500 text-sm">
-                2025 MyFirstResume.
+                2025 NoSmallTalk.
               </p>
               <div className="flex space-x-6">
                 {/* <a href="#" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">

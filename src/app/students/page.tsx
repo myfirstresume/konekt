@@ -19,6 +19,33 @@ export default function StudentsPage() {
     { id: 'cta', label: 'Get Started' }
   ];
 
+  const platformSteps = [
+    {
+      title: "Purchase Credits",
+      description: "Buy credits to connect with professionals across any industry. Choose from flexible packages that fit your needs.",
+      backgroundImage: "/content/credits.png",
+      type: "mentor" as const,
+      position: "left" as const,
+      link: "/pricing"
+    },
+    {
+      title: "Get Matched", 
+      description: "We connect you with professionals who match your career goals and interests. Our smart algorithm ensures the perfect fit.",
+      backgroundImage: "/content/professional.png",
+      type: "student" as const,
+      position: "middle" as const,
+      link: "/resumes"
+    },
+    {
+      title: "Learn & Grow",
+      description: "Have candid conversations and get personalized advice to accelerate your career growth and achieve your goals.",
+      backgroundImage: "/content/meeting.png",
+      type: "mentor" as const,
+      position: "right" as const,
+      link: "/features"
+    }
+  ];
+
   const careerPaths = [
     {
       title: 'Finance & Banking',
@@ -82,7 +109,7 @@ export default function StudentsPage() {
               <div id="how-it-works" className="space-y-12">
                 <h2 className="text-3xl font-bold text-gray-900 text-center">How It Works</h2>
                 <div className="max-w-7xl mx-auto">
-                  <DynamicContentCard activeSection={activeSection} />
+                  <DynamicContentCard activeSection={activeSection} platformSteps={platformSteps} />
                 </div>
               </div>
 

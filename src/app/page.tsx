@@ -43,7 +43,7 @@ export default function Home() {
                       <span className="text-mfr-primary">from your dream job</span>
                     </h1>
                     <p className="text-xl text-gray-600">
-                      We&apos;ll connect you with industry professionals to help you get your dream job.
+                      We&apos;ll connect you with the rightindustry professionals to help you achieve your career goals.
                     </p>
                   </div>
 

@@ -104,7 +104,7 @@ export default function PlatformStepCard({
         {/* Overlay for readability */}
         <div className={`absolute inset-0 transition-opacity duration-500 ${
           type === 'student' 
-            ? 'bg-gradient-to-br from-blue-600/80 via-blue-500/80 to-gray-700/80' 
+            ? 'bg-gradient-to-br from-blue-600/60 via-blue-500/60 to-gray-700/80' 
             : 'bg-black/60'
         } ${shouldExpand ? 'opacity-100' : 'opacity-70'}`} />
 
@@ -117,7 +117,7 @@ export default function PlatformStepCard({
           {/* Spacer to push subtext to bottom */}
           <div className="flex-grow" />
           
-          <p className={`mt-auto pt-8 text-sm transition-all duration-500 ${subtextOpacityClass} ${type === 'student' ? 'text-white/90 pl-12' : 'text-white/90'}`}>
+          <p className={`mt-auto pt-8 text-md transition-all duration-500 ${subtextOpacityClass} ${type === 'student' ? 'text-white/90' : 'text-white/90'}`}>
             {description}
           </p>
         </div>
