@@ -42,7 +42,7 @@ export default function PlatformStepCard({
 
   const shouldExpand = isHovered || isExpanded;
 
-  const cardWidthClass = shouldExpand ? 'w-3/5' : 'w-[calc(10%+6%)]';
+  const cardWidthClass = shouldExpand ? 'w-4/5 sm:w-3/5' : 'w-[calc(15%+6%)] sm:w-[calc(10%+6%)]';
   
   // Dynamic positioning based on which card is expanded
   const getCardPositionClass = () => {
@@ -50,10 +50,10 @@ export default function PlatformStepCard({
       // When this card is expanded, position others based on this card's position
       if (position === 'left') {
         // Left card expanded - cluster others to the right
-        return 'left-2 mr-4';
+        return 'left-2 mr-2 sm:mr-4';
       } else if (position === 'right') {
         // Right card expanded - cluster others to the left
-        return 'right-2 ml-4';
+        return 'right-2 ml-2 sm:ml-4';
       } else {
         // Middle card expanded - keep normal positioning
         return 'left-1/2 -translate-x-1/2';
@@ -80,7 +80,7 @@ export default function PlatformStepCard({
         }
       }
       // Default positioning
-      return position === 'left' ? 'left-2 mr-4' : position === 'right' ? 'right-2 ml-4' : 'left-1/2 -translate-x-1/2';
+      return position === 'left' ? 'left-2 mr-2 sm:mr-4' : position === 'right' ? 'right-2 ml-2 sm:ml-4' : 'left-1/2 -translate-x-1/2';
     }
   };
 
@@ -109,15 +109,15 @@ export default function PlatformStepCard({
         } ${shouldExpand ? 'opacity-100' : 'opacity-70'}`} />
 
         {/* Content */}
-        <div className="relative z-10 p-6 h-full flex flex-col">
-          <h3 className={`text-lg font-bold mb-3 transition-all duration-500 ${titleOpacityClass} ${type === 'student' ? 'text-white' : 'text-white'}`}>
+        <div className="relative z-10 p-3 sm:p-6 h-full flex flex-col">
+          <h3 className={`text-sm sm:text-lg font-bold mb-2 sm:mb-3 transition-all duration-500 ${titleOpacityClass} ${type === 'student' ? 'text-white' : 'text-white'}`}>
             {title}
           </h3>
           
           {/* Spacer to push subtext to bottom */}
           <div className="flex-grow" />
           
-          <p className={`mt-auto pt-8 text-md transition-all duration-500 ${subtextOpacityClass} ${type === 'student' ? 'text-white/90' : 'text-white/90'}`}>
+          <p className={`mt-auto pt-4 sm:pt-8 text-xs sm:text-md transition-all duration-500 ${subtextOpacityClass} ${type === 'student' ? 'text-white/90' : 'text-white/90'}`}>
             {description}
           </p>
         </div>

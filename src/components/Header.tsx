@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "next-auth/react";
 
@@ -11,6 +12,7 @@ export default function Header() {
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
 
   // Type assertion for user to ensure user.id is available
   const typedUser = user as any;
@@ -103,9 +105,9 @@ export default function Header() {
           ) : (
             // User is authenticated but no active subscription - show marketing navigation
             <>
-              <a href="/features" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+              {/* <a href="/features" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Features
-              </a>
+              </a> */}
               {/* <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Pricing
               </a> */}
@@ -152,17 +154,42 @@ export default function Header() {
               </Link> */}
                               <button 
                   onClick={() => {
-                    const element = document.getElementById('waitlist-email');
-                    if (element) {
-                      element.scrollIntoView({ 
-                        behavior: 'smooth',
-                        block: 'center'
-                      });
-                      // Focus the input after scrolling completes
-                      setTimeout(() => {
-                        element.focus();
-                      }, 500);
-                    }
+                    // Try to find the waitlist form on the current page with a small delay
+                    setTimeout(() => {
+                      let element = document.getElementById('waitlist-email');
+                      console.log('Looking for waitlist-email element:', element);
+                      
+                      // If waitlist-email not found, try the waitlist container
+                      if (!element) {
+                        element = document.getElementById('waitlist');
+                        console.log('Looking for waitlist container element:', element);
+                      }
+                      
+                      if (element) {
+                        // If found, scroll to it using scrollIntoView with better options
+                        console.log('Scrolling to element:', element);
+                        
+                        element.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'center',
+                          inline: 'nearest'
+                        });
+                        
+                        // Try to focus the email input after scrolling completes
+                        setTimeout(() => {
+                          const emailInput = document.getElementById('waitlist-email');
+                          if (emailInput) {
+                            emailInput.focus();
+                          }
+                        }, 1000);
+                      } else {
+                        // If not found, navigate to the main page and scroll to waitlist
+                        console.log('No waitlist element found, navigating to main page');
+                        router.push('/');
+                        // Set a flag in sessionStorage to scroll to waitlist after navigation
+                        sessionStorage.setItem('scrollToWaitlist', 'true');
+                      }
+                    }, 100);
                   }}
                   className="bg-mfr-primary text-white px-4 sm:px-6 py-2 rounded-md hover:mfr-primary/80 transition-colors text-sm lg:text-base hover:cursor-pointer"
                 >
@@ -262,13 +289,13 @@ export default function Header() {
               ) : (
                 // User is authenticated but no active subscription - show marketing navigation
                 <>
-                  <a 
+                  {/* <a 
                     href="/features" 
                     className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Features
-                  </a>
+                  </a> */}
                   <a 
                     href="/pricing" 
                     className="text-gray-700 hover:text-gray-900 transition-colors py-2"
@@ -326,13 +353,13 @@ export default function Header() {
                 >
                   For professionals
                 </Link>
-                <a 
+                {/* <a 
                   href="/features" 
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Features
-                </a>
+                </a> */}
                 {/* <a 
                   href="/pricing" 
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"
@@ -347,13 +374,51 @@ export default function Header() {
                 >
                   Log in
                 </Link> */}
-                <Link 
-                  href="#waitlist"
-                  className="bg-gray-200 text-gray-900 px-6 py-3 rounded-md hover:bg-gray-300 transition-colors text-left hover:cursor-pointer"
-                  onClick={() => setIsMenuOpen(false)}
+                <button 
+                  className="bg-gray-200 text-gray-900 px-6 py-3 rounded-md hover:bg-gray-300 transition-colors text-left hover:cursor-pointer w-full text-left"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    
+                    // Try to find the waitlist form on the current page with a small delay
+                    setTimeout(() => {
+                      let element = document.getElementById('waitlist-email');
+                      console.log('Mobile: Looking for waitlist-email element:', element);
+                      
+                      // If waitlist-email not found, try the waitlist container
+                      if (!element) {
+                        element = document.getElementById('waitlist');
+                        console.log('Mobile: Looking for waitlist container element:', element);
+                      }
+                      
+                      if (element) {
+                        // If found, scroll to it using scrollIntoView with better options
+                        console.log('Mobile: Scrolling to element:', element);
+                        
+                        element.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'center',
+                          inline: 'nearest'
+                        });
+                        
+                        // Try to focus the email input after scrolling completes
+                        setTimeout(() => {
+                          const emailInput = document.getElementById('waitlist-email');
+                          if (emailInput) {
+                            emailInput.focus();
+                          }
+                        }, 1000);
+                      } else {
+                        // If not found, navigate to the main page and scroll to waitlist
+                        console.log('Mobile: No waitlist element found, navigating to main page');
+                        router.push('/');
+                        // Set a flag in sessionStorage to scroll to waitlist after navigation
+                        sessionStorage.setItem('scrollToWaitlist', 'true');
+                      }
+                    }, 100);
+                  }}
                 >
                   Request early access
-                </Link>
+                </button>
               </>
             )}
           </nav>

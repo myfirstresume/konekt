@@ -60,7 +60,7 @@ export default function Footer() {
                 <h3 className="text-lg font-bold text-gray-900">NoSmallTalk</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4 max-w-md">
-                Combining years of experience from top companies from top companies with AI to help you get your first job.
+                Finding the right people to help you achieve your career goals.
               </p>
               <div className="flex space-x-4">
               {/* TODO: Add social media linkss */}

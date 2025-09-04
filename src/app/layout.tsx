@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NoSmallTalk | Resumes that get you hired",
-  description: "Professional AI-powered resume review service built by experts from top companies",
+  title: "NoSmallTalk | Your new job is one conversation away",
+  description: "Find professionals to help you achieve your career goals",
 };
 
 export default function RootLayout({

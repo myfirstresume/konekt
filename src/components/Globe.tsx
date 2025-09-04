@@ -144,13 +144,13 @@ export default function GlobeComponent() {
   }, [isClient]);
 
   return (
-    <div className="h-[600px] mb-2">
+    <div className="hidden sm:block h-[400px] sm:h-[500px] lg:h-[600px] mb-2">
       {!isClient ? (
         // Loading state for SSR
         <div className="w-full h-full bg-gray-100 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-mfr-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading global network...</p>
+            <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-mfr-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-sm sm:text-base text-gray-600">Loading global network...</p>
           </div>
         </div>
       ) : (
