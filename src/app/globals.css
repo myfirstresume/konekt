@@ -4,7 +4,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --mfr-primary: #FF5733;
+  /* --mfr-primary: #FF5733; */
+  --mfr-primary: #000000;
 }
 
 @theme inline {

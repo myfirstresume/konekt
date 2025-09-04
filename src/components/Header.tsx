@@ -49,7 +49,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-100">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-100">
       {/* Logo and Brand */}
       <Link href="/" className="flex items-center space-x-2 sm:space-x-3">
         <Image
@@ -57,9 +57,9 @@ export default function Header() {
           alt="MyFirstResume Logo"
           width={40}
           height={40}
-          className="w-6 h-6 sm:w-8 sm:h-8"
+          className="w-6 h-6 sm:w-7 sm:h-7"
         />
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">MyFirstResume</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900">MyFirstResume</h1>
       </Link>
 
       {/* Desktop Navigation */}
@@ -106,9 +106,9 @@ export default function Header() {
               <a href="/features" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Features
               </a>
-              <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+              {/* <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Pricing
-              </a>
+              </a> */}
               <Link href="/dashboard" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
                 Dashboard
               </Link>
@@ -137,21 +137,38 @@ export default function Header() {
         ) : (
           // User is not authenticated - show public navigation
           <>
-            <a href="/features" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
-              Features
+            <a href="/students" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+              For students
             </a>
-            <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+            <a href="/professionals" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+              For professionals
+            </a>
+            {/* <a href="/pricing" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
               Pricing
-            </a>
-            <Link href="/login" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
-              Log in
-            </Link>
-            <Link 
-              href="/pricing"
-              className="bg-mfr-primary text-white px-4 sm:px-6 py-2 rounded-md hover:bg-mfr-primary/80 transition-colors text-sm lg:text-base"
-            >
-              Sign up
-            </Link>
+            </a> */}
+            <div className="flex items-center space-x-4">
+              {/* <Link href="/login" className="text-gray-700 hover:text-gray-900 transition-colors text-sm lg:text-base">
+                Log in
+              </Link> */}
+                              <button 
+                  onClick={() => {
+                    const element = document.getElementById('waitlist-email');
+                    if (element) {
+                      element.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'center'
+                      });
+                      // Focus the input after scrolling completes
+                      setTimeout(() => {
+                        element.focus();
+                      }, 500);
+                    }
+                  }}
+                  className="bg-mfr-primary text-white px-4 sm:px-6 py-2 rounded-md hover:mfr-primary/80 transition-colors text-sm lg:text-base hover:cursor-pointer"
+                >
+                  Request early access
+                </button>
+            </div>
           </>
         )}
       </nav>
@@ -300,28 +317,42 @@ export default function Header() {
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Features
+                  For students
                 </a>
                 <a 
                   href="/pricing" 
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Pricing
+                  For professionals
                 </a>
-                <Link 
+                <a 
+                  href="/features" 
+                  className="text-gray-700 hover:text-gray-900 transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Features
+                </a>
+                {/* <a 
+                  href="/pricing" 
+                  className="text-gray-700 hover:text-gray-900 transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Pricing
+                </a> */}
+                {/* <Link 
                   href="/login" 
                   className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Log in
-                </Link>
+                </Link> */}
                 <Link 
-                  href="/pricing"
-                  className="bg-mfr-primary text-white px-6 py-3 rounded-md hover:bg-mfr-primary/80 transition-colors text-left"
+                  href="#waitlist"
+                  className="bg-gray-200 text-gray-900 px-6 py-3 rounded-md hover:bg-gray-300 transition-colors text-left hover:cursor-pointer"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Sign up
+                  Request early access
                 </Link>
               </>
             )}
