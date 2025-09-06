@@ -149,7 +149,7 @@ export default function FeaturesPage() {
               Ready to Transform Your Career?
             </h2>
             <p className="text-lg text-gray-600 mb-8">
-              Join thousands of professionals who have already accelerated their careers with NoSmallTalk.
+              Join thousands of professionals who have already accelerated their careers with Konekt.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-mfr-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-mfr-primary/80 transition-colors">

@@ -125,7 +125,7 @@ function PricingPageContent() {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-green-800">
-                    Welcome to NoSmallTalk!
+                    Welcome to Konekt!
                   </h3>
                   <div className="mt-2 text-sm text-green-700">
                     <p>

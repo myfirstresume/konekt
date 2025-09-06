@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addToWaitlist } from '@/utils/waitlist';
+import { addToWaitlist, getExistingUserData } from '@/utils/waitlist';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, referralId, mentor, company } = await req.json();
+    const { email, referralId, mentor, company, action } = await req.json();
+    
+    // Handle lookup action for existing users
+    if (action === 'lookup') {
+      if (!email || typeof email !== 'string') {
+        return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
+      }
+      
+      const userData = await getExistingUserData(email);
+      if (!userData) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      
+      return NextResponse.json({ 
+        success: true, 
+        userData 
+      });
+    }
+    
+    // Default action: add to waitlist
     if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
     }

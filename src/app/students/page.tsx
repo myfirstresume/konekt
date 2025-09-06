@@ -76,6 +76,7 @@ export default function StudentsPage() {
     { id: 'how-it-works', label: 'How It Works' },
     { id: 'benefits', label: 'Benefits' },
     { id: 'careers', label: 'Career Paths' },
+    { id: 'conversation-topics', label: 'Sample Conversation Topics' },
     { id: 'cta', label: 'Get Started' }
   ];
 
@@ -214,6 +215,39 @@ export default function StudentsPage() {
               </div>
             </div>
 
+            {/* Sample Conversation Topics Section */}
+            <div id="conversation-topics" className="space-y-6 sm:space-y-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center">Sample Conversation Topics</h2>
+              <div className="max-w-4xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Company Culture & Stability</h3>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      &ldquo;How bad is turnover? Are people quitting left and right? Any whispers of layoffs?&rdquo;
+                    </p>
+                  </div>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Work-Life Balance</h3>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      &ldquo;What hours are you really working? Weekends too?&rdquo;
+                    </p>
+                  </div>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Compensation Reality</h3>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      &ldquo;What&apos;s the bonus like in a good year vs. a bad year?&rdquo;
+                    </p>
+                  </div>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Day-to-Day Work</h3>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      &ldquo;What do you actually do every single day? Can you describe the qualitative/quantitative work you do and how you learned to do it?&rdquo;
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Call to Action */}
             <div id="cta" className="text-center space-y-4 sm:space-y-6">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Ready to Start Your Career Journey?</h2>
@@ -316,6 +350,39 @@ export default function StudentsPage() {
                       description={career.description}
                     />
                   ))}
+                </div>
+              </div>
+
+              {/* Sample Conversation Topics Section */}
+              <div id="conversation-topics" className="space-y-8">
+                <h2 className="text-3xl font-bold text-gray-900 text-center">Sample Conversation Topics</h2>
+                <div className="max-w-4xl mx-auto">
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold text-gray-900">Company Culture & Stability</h3>
+                      <p className="text-gray-600">
+                        &ldquo;How bad is turnover? Are people quitting left and right? Any whispers of layoffs?&rdquo;
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold text-gray-900">Work-Life Balance</h3>
+                      <p className="text-gray-600">
+                        &ldquo;What hours are you really working? Weekends too?&rdquo;
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold text-gray-900">Compensation Reality</h3>
+                      <p className="text-gray-600">
+                        &ldquo;What&apos;s the bonus like in a good year vs. a bad year?&rdquo;
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold text-gray-900">Day-to-Day Work</h3>
+                      <p className="text-gray-600">
+                        &ldquo;What do you actually do every single day? What are the tasks like? Can you describe all of the qualitative/quantitative work you do and how you learned to do it?&rdquo;
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

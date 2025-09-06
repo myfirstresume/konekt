@@ -56,12 +56,12 @@ export default function Header() {
       <Link href="/" className="flex items-center space-x-2 sm:space-x-3">
         <Image
           src="/mfr_logo.png"
-          alt="NoSmallTalk Logo"
+          alt="Konekt Logo"
           width={40}
           height={40}
           className="w-6 h-6 sm:w-7 sm:h-7"
         />
-        <h1 className="text-lg sm:text-xl font-bold text-gray-900">NoSmallTalk</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900">Konekt</h1>
       </Link>
 
       {/* Desktop Navigation */}
@@ -296,13 +296,13 @@ export default function Header() {
                   >
                     Features
                   </a> */}
-                  <a 
+                  <Link 
                     href="/pricing" 
                     className="text-gray-700 hover:text-gray-900 transition-colors py-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Pricing
-                  </a>
+                  </Link>
                   <Link 
                     href="/dashboard" 
                     className="text-gray-700 hover:text-gray-900 transition-colors py-2"

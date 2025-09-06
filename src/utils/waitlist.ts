@@ -125,6 +125,34 @@ async function updateReferralCount(sheet: GoogleSpreadsheetWorksheet, referralId
   }
 }
 
+export async function getUserByReferralId(referralId: string): Promise<{ id: string; email: string; referralLink: string; numReferrals: number } | null> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEET_ID as string, serviceAccountAuth);
+    await doc.loadInfo();
+    const sheet = doc.sheetsByTitle[SHEET_TITLE as string];
+    if (!sheet) {
+      throw new Error(`Sheet '${SHEET_TITLE}' not found.`);
+    }
+
+    const rows = await sheet.getRows();
+    const userRow = rows.find((row: GoogleSpreadsheetRow) => row.get('id') === referralId);
+    
+    if (userRow) {
+      return {
+        id: userRow.get('id'),
+        email: userRow.get('email'),
+        referralLink: userRow.get('referral_link'),
+        numReferrals: parseInt(userRow.get('num_referrals') || '0')
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Failed to get user by referral ID:', error);
+    throw error;
+  }
+}
+
 export async function getReferralStats(referralId: string): Promise<{ numReferrals: number } | null> {
   try {
     const doc = new GoogleSpreadsheet(SHEET_ID as string, serviceAccountAuth);
@@ -146,6 +174,44 @@ export async function getReferralStats(referralId: string): Promise<{ numReferra
     return null;
   } catch (error) {
     console.error('Failed to get referral stats:', error);
+    throw error;
+  }
+}
+
+/**
+ * Tracks a referral visit and increments the referral count for the referrer.
+ * This function should be called when someone visits a referral link.
+ * 
+ * @param referralId - The unique ID of the referrer
+ * @returns Promise with success status and updated user data
+ */
+export async function trackReferralVisit(referralId: string): Promise<{ success: boolean; userData?: { id: string; email: string; referralLink: string; numReferrals: number } }> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEET_ID as string, serviceAccountAuth);
+    await doc.loadInfo();
+    const sheet = doc.sheetsByTitle[SHEET_TITLE as string];
+    if (!sheet) {
+      throw new Error(`Sheet '${SHEET_TITLE}' not found.`);
+    }
+
+    // Get user data first
+    const userData = await getUserByReferralId(referralId);
+    if (!userData) {
+      return { success: false };
+    }
+
+    // Update referral count
+    await updateReferralCount(sheet as GoogleSpreadsheetWorksheet, referralId);
+
+    // Get updated user data
+    const updatedUserData = await getUserByReferralId(referralId);
+    
+    return { 
+      success: true, 
+      userData: updatedUserData || userData 
+    };
+  } catch (error) {
+    console.error('Failed to track referral visit:', error);
     throw error;
   }
 }

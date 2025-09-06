@@ -1,18 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import ReferralCode from './ReferralCode';
 
 interface WaitlistFormProps {
   onSuccess?: (data: { referralLink: string; id: string }) => void;
+  referralId?: string;
 }
 
-export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
+export default function WaitlistForm({ onSuccess, referralId }: WaitlistFormProps) {
   const [email, setEmail] = useState('');
   const [isMentor, setIsMentor] = useState(false);
   const [company, setCompany] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [referralData, setReferralData] = useState<{ referralLink: string; id: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +32,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
           email,
           mentor: isMentor,
           company: isMentor ? company : undefined,
+          referralId: referralId,
         }),
       });
 
@@ -39,6 +43,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
       }
 
       setSuccess(true);
+      setReferralData({ referralLink: data.referralLink, id: data.id });
       onSuccess?.(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join waitlist');
@@ -49,19 +54,28 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 
   if (success) {
     return (
-      <div className="text-center space-y-4">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+      <div className="space-y-6">
+        <div className="space-y-4">
+          {/* <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto"> */}
+            {/* <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg> */}
+          {/* </div> */}
+          <h3 className="text-xl font-semibold text-gray-900">You&apos;re on the list!</h3>
+          <p className="text-gray-600">
+            {isMentor 
+              ? "We'll be in touch soon about joining. In the meantime, share this link with others that might be interested."
+              : "We'll notify you when we launch. Share this link with others to earn free session credits."
+            }
+          </p>
         </div>
-        <h3 className="text-xl font-semibold text-gray-900">You&apos;re on the list!</h3>
-        <p className="text-gray-600">
-          {isMentor 
-            ? "We'll be in touch soon about joining our mentor network."
-            : "We'll notify you when we launch our mentorship network service."
-          }
-        </p>
+        
+        {referralData && (
+          <ReferralCode 
+            referralLink={referralData.referralLink} 
+            referralId={referralData.id} 
+          />
+        )}
       </div>
     );
   }

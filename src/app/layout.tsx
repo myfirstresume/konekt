@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NoSmallTalk | Your new job is one conversation away",
+  title: "Konekt | Your new job is one conversation away",
   description: "Find professionals to help you achieve your career goals",
 };
 

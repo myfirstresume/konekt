@@ -1,6 +1,6 @@
-# NoSmallTalk
+# Konekt
 
-NoSmallTalk is a platform that helps you create your first resume.
+Konekt is a platform that helps you create your first resume.
 
 # Development
 

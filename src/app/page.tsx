@@ -7,12 +7,58 @@ import WaitlistForm from "@/components/WaitlistForm";
 import GlobeComponent from "@/components/Globe";
 import FeatureCardsContainer from "@/components/FeatureCardsContainer";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 export default function Home() {
   const { userId, isLoading } = useAuth();
+  const [referralId, setReferralId] = useState<string | null>(null);
+  const [isTrackingReferral, setIsTrackingReferral] = useState(false);
+  const [referralTrackingError, setReferralTrackingError] = useState('');
   const LOGO_SCALING = 3;
+
+  // Handle referral detection and tracking
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Check for referral ID in query parameters first (from redirect)
+      const urlParams = new URLSearchParams(window.location.search);
+      const refFromQuery = urlParams.get('ref');
+      
+      // Also check path segments as fallback
+      const pathSegments = window.location.pathname.split('/');
+      const refFromPath = pathSegments[pathSegments.length - 1];
+      
+      // Use query parameter first, then path segment
+      const referralCode = refFromQuery || refFromPath;
+      
+      // Check if it looks like a referral ID (8 characters, alphanumeric)
+      if (referralCode && referralCode.length === 8 && /^[a-z0-9]+$/.test(referralCode)) {
+        setReferralId(referralCode);
+        setIsTrackingReferral(true);
+        
+        // Track the referral visit
+        const trackReferral = async () => {
+          try {
+            const response = await fetch(`/api/referral/${referralCode}`, {
+              method: 'GET',
+            });
+
+            if (!response.ok) {
+              console.error('Failed to track referral:', response.statusText);
+              setReferralTrackingError('Invalid referral link');
+            }
+          } catch (error) {
+            console.error('Error tracking referral:', error);
+            setReferralTrackingError('Failed to track referral');
+          } finally {
+            setIsTrackingReferral(false);
+          }
+        };
+
+        trackReferral();
+      }
+    }
+  }, []);
 
   // Handle navigation to waitlist section
   useEffect(() => {
@@ -104,13 +150,30 @@ export default function Home() {
                       <span className="text-mfr-primary">from your dream job</span>
                     </h1>
                     <p className="text-lg sm:text-xl text-gray-600">
-                      We&apos;ll connect you with the right industry professionals to help you achieve your career goals.
+                      We set up anonymous one-on-one meetings between students and industry professionals. Ask candid questions that give you real answers, not rehearsed talking points.
                     </p>
                   </div>
 
+                  {/* Referral Banner */}
+                  {referralId && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md">
+                      <p className="text-blue-800 text-sm">
+                        🎉 You were referred by a friend! Join the waitlist to get started.
+                      </p>
+                    </div>
+                  )}
+
+                  {referralTrackingError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md">
+                      <p className="text-red-800 text-sm">
+                        {referralTrackingError}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Waitlist Signup Form */}
                   <div id="waitlist" className="max-w-md">
-                    <WaitlistForm />
+                    <WaitlistForm referralId={referralId || undefined} />
                   </div>
                 </div>
                 
