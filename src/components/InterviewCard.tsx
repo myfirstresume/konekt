@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { InterviewCard as InterviewCardType } from '@/types/interview';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface InterviewCardProps {
   interviewer: InterviewCardType;
@@ -97,12 +98,12 @@ export default function InterviewCard({ interviewer, onCreditUsed }: InterviewCa
             <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
               <p className="text-red-700 text-sm">{error}</p>
               {error.includes('limit') && (
-                <a 
+                <Link
                   href="/pricing" 
                   className="text-red-600 hover:text-red-800 text-sm underline mt-1 inline-block"
                 >
                   Upgrade your plan
-                </a>
+                </Link>
               )}
             </div>
           )}
