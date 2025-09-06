@@ -17,7 +17,7 @@ export default function FeatureCardsContainer() {
           Two sides, one goal
         </h2>
         <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-          Find the right fit for your future
+          We&apos;ll find the right people for your future.
         </p>
       </div>
       
