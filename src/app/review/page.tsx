@@ -12,6 +12,7 @@ import JobDescriptionModal from '@/components/JobDescriptionModal';
 import { ChatMessage as ChatMessageType } from '@/types/chat';
 import { textToDocx } from '@/utils/document-generator';
 import { saveSuggestionsToCache, getCachedSuggestions, updateSuggestionStatus, cleanupHandledSuggestions } from '@/utils/suggestion-cache';
+import Link from 'next/link';
 
 interface Comment {
   id: string;
@@ -1072,12 +1073,12 @@ function ReviewPageContent() {
                 </div>
                 <h3 className="text-lg font-medium text-red-800 mb-2">No Resume Selected</h3>
                 <p className="text-red-700 mb-4">Please select a resume to review from your dashboard.</p>
-                <a
+                <Link
                   href="/resumes"
                   className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
                 >
                   Go to Resumes
-                </a>
+                </Link>
               </div>
             </div>
           </main>
@@ -1110,12 +1111,12 @@ function ReviewPageContent() {
                   >
                     Try Again
                   </button>
-                  <a
+                  <Link
                     href="/resumes"
                     className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
                   >
                     Go to Resumes
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>

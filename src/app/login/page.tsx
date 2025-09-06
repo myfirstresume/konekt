@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -167,12 +168,12 @@ export default function LoginPage() {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Not sure what to plan to choose ?{' '}
-              <a
+              <Link
                 href="/pricing"
                 className="font-medium text-mfr-primary hover:text-mfr-primary/80 transition-colors"
               >
                 Check out our subscription plans to find what&apos;s right for you!
-              </a>
+              </Link>
             </p>
           </div>
 
@@ -188,12 +189,12 @@ export default function LoginPage() {
                 Terms of Service
               </a>{' '}
               and{' '} */}
-              <a
+              <Link
                 href="/privacy"
                 className="text-mfr-primary hover:text-mfr-primary/80 transition-colors"
               >
                 Privacy Policy
-              </a>
+              </Link>
             </p>
           </div>
         </div>
