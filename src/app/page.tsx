@@ -135,22 +135,22 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <main className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <main className="px-4 sm:px-6 lg:px-8 py-2 sm:py-2 lg:py-2">
         <div className="max-w-7xl mx-auto">
           {!userId && !isLoading ? (
             // Landing page for non-authenticated users
-            <div className="space-y-12 sm:space-y-16">
+            <div className="space-y-12 sm:space-y-10">
               {/* Hero Section */}
-              <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start pt-4 sm:pt-8">
+              <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-start pt-4 sm:pt-8">
                 {/* Left Column - Value Proposition */}
-                <div className="space-y-6 sm:space-y-8 order-2 lg:order-1">
-                  <div className="space-y-4 max-w-md">
+                <div className="space-y-2 sm:space-y-6 order-2 lg:order-1">
+                  <div className="space-y-2 max-w-md">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight">
                       You&apos;re one conversation away {' '}
                       <span className="text-mfr-primary">from your dream job</span>
                     </h1>
                     <p className="text-lg sm:text-xl text-gray-600">
-                      We set up anonymous one-on-one meetings between students and industry professionals. Ask candid questions that give you real answers, not rehearsed talking points.
+                      We set up anonymous one-on-one meetings between students and industry professionals. Ask candid questions that give you real answers.
                     </p>
                   </div>
 

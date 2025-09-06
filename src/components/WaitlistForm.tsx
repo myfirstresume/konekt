@@ -54,8 +54,8 @@ export default function WaitlistForm({ onSuccess, referralId }: WaitlistFormProp
 
   if (success) {
     return (
-      <div className="space-y-6">
-        <div className="space-y-4">
+      <div className="space-y-4">
+        <div className="space-y-0">
           {/* <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto"> */}
             {/* <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -81,7 +81,7 @@ export default function WaitlistForm({ onSuccess, referralId }: WaitlistFormProp
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
