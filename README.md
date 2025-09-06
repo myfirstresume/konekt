@@ -1,6 +1,6 @@
 # Konekt
 
-Konekt is a platform that helps you create your first resume.
+Konekt is a platform that helps connect students with industry professionals to help them get their dream job.
 
 # Development
 
