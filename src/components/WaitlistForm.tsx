@@ -61,11 +61,11 @@ export default function WaitlistForm({ onSuccess, referralId }: WaitlistFormProp
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg> */}
           {/* </div> */}
-          <h3 className="text-xl font-semibold text-gray-900">You&apos;re on the list!</h3>
+          <h3 className="text-xl font-semibold text-gray-900 pb-2">🎉 You&apos;re on the list!</h3>
           <p className="text-gray-600">
             {isMentor 
               ? "We'll be in touch soon about joining. In the meantime, share this link with others that might be interested."
-              : "We'll notify you when we launch. Share this link with others to earn free session credits."
+              : "Thanks for signing up. Want to unlock free coffee chats when we launch? Just share your unique link, every friend who signs up earns you credits for free calls. More friends = more chats on us."
             }
           </p>
         </div>
